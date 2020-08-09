@@ -15,7 +15,9 @@ This is an opinionated guide to hardware design from first principles using Hask
 Much of the code included in the examples will be written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find desiging hardware with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot; over time the dividends pay well. Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools. If you design hardware in a language other than Haskell, feel free to skip over the language specific aspects. We hope to translate the examples to other HDLs as this guide develops.
   
 We will be using the Project IceStorm flow for synthesis, routing, and programming. These are excellent, well-maintained open source tools. For installation and setup visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#project-icestorm) repo.
-  
+
+This guide will be split into several sections. Each section will begin with construction of sub-components then culminate with an application which utilizes the sub-components. [Section 1] will construct a simple blinker, the "hello-world" of FPGAs.
+
 Finally, if you have any suggestions, comments, discussions, edits additions etc. please open an issue in this repo. We value any and all contributions. Lets get started!
 ## [Section 1](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we start by building a counter. Then using the counter, construct a pwm. Equipped with our counter and pwm, we integrate a RGB FPGA IP to create our first running application on VELDT; a blinker!
