@@ -155,11 +155,13 @@ decrement = do
     then maxBound
     else pred c
 ```
-Heres the gist: first `get` the current value of the counter. If the value is equal to its maximum (minimum) bound then set the counter to the minimum (maximum) bound. Otherwise, `set` the counter to the value's successor (predecessor). For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6`, but `succ (4 :: Index 5)` is undefined and out-of-bounds **DO NOT DO THIS** because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`.
+Heres the gist: first `get` the current value of the counter. If the value is equal to its maximum (minimum) bound then set the counter to the minimum (maximum) bound. Otherwise, `set` the counter to the value's successor (predecessor). 
 
 The typeclass constraint `Bounded` says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise `Eq` lets us compare equality `==` and `Enum` provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. Additionally, the RWS Monad `RWST r w s m a` requires `w` to be a `Monoid` and `m` a `Monad`, this will be important later when we "run" our monadic action.
 
-Finally, lets now use our new `increment` function to implement a conditional increment `incrementWhen` and `incrementUnless`. The former will increment when a predicate is `True`, the latter when `False`.
+When designing your own counters be careful when using `succ` or `pred`. For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6)`, but `succ (4 :: Index 5)` is undefined and out of bounds (**DO NOT DO THIS**) because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`; that is why we check for `maxBound` and `minBound` states in `increment` and `decrement`.
+
+Finally, let us now use our new `increment` function to implement a conditional increment `incrementWhen` and `incrementUnless`. The former will increment when a predicate is `True`, the latter when `False`.
 ```haskell
 incrementWhen
   :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
@@ -177,7 +179,7 @@ incrementUnless
   -> RWST r w (Counter a) m ()
 incrementUnless f = incrementWhen (not . f)
 ```
-In `incrementWhen`, we get the counter value and apply our predicate then bind to `b`. Thus, if the predicate evaluates to `True`, `b` is bound to `True` and we increment the counter. Otherwise, we set the value of the counter to its minimum bound. To reduce and reuse code, we implement `incrementUnless` using `incrementWhen` and post-compose `not` to our predicate. Suppose we have `incrementUnless (== 3) :: RWST r w (Counter (Index 4)) m ()`, then the states of the counter would be: ... 0 1 2 3 0 1 2 3 0 1 2 3 ...
+Within `incrementWhen`, we get the counter value and apply our predicate then bind to `b`. Thus, if the predicate evaluates to `True`, `b` is bound to `True` and we increment the counter. Otherwise, we set the value of the counter to its minimum bound. To reduce and reuse code, we implement `incrementUnless` using `incrementWhen` and post-compose `not` to our predicate. Suppose we have `incrementUnless (== 3) :: RWST r w (Counter (Index 8)) m ()`, then the states of the counter would be: ... 0 1 2 3 0 1 2 3 0 1 2 3 ...
 
 To end this section, lets clean then rebuild the library. You should not see any errors.
 ```console
@@ -194,7 +196,7 @@ Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
 [1 of 1] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/davos/eda/proj/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o ) [flags changed]
 ```
-You can find the full source code for this section [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter to create a PWM.
+You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter to create a PWM.
 ### [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 2: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
