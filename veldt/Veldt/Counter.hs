@@ -50,8 +50,8 @@ incrementWhen
   :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
   => (a -> Bool)
   -> RWST r w (Counter a) m ()
-incrementWhen f = do
-  b <- gets f
+incrementWhen p = do
+  b <- gets p
   if b
     then increment
     else set minBound
@@ -60,4 +60,4 @@ incrementUnless
   :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
   => (a -> Bool)
   -> RWST r w (Counter a) m ()
-incrementUnless f = incrementWhen (not . f)
+incrementUnless p = incrementWhen (not . p)

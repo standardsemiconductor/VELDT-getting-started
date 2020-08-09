@@ -167,8 +167,8 @@ incrementWhen
   :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
   => (a -> Bool)
   -> RWST r w (Counter a) m ()
-incrementWhen f = do
-  b <- gets f
+incrementWhen p = do
+  b <- gets p
   if b
     then increment
     else set minBound
@@ -177,7 +177,7 @@ incrementUnless
   :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
   => (a -> Bool)
   -> RWST r w (Counter a) m ()
-incrementUnless f = incrementWhen (not . f)
+incrementUnless p = incrementWhen (not . p)
 ```
 Within `incrementWhen`, we get the counter value and apply our predicate then bind to `b`. Thus, if the predicate evaluates to `True`, `b` is bound to `True` and we increment the counter. Otherwise, we set the value of the counter to its minimum bound. To reduce and reuse code, we implement `incrementUnless` using `incrementWhen` and post-compose `not` to our predicate. Suppose we have `incrementUnless (== 3) :: RWST r w (Counter (Index 8)) m ()`, then the states of the counter would be: ... 0 1 2 3 0 1 2 3 0 1 2 3 ...
 
