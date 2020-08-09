@@ -1,4 +1,4 @@
-# Where Lions Roam: Haskell & Hardware on the VELDT
+# Where Lions Roam: Haskell & Hardware on VELDT
 
 ## Table of Contents
 1. [Section 0: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#section-0-introduction--setup)
