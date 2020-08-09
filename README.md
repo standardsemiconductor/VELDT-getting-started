@@ -161,7 +161,7 @@ The typeclass constraint `Bounded` says our counter has a minimum and maximum va
 
 When designing your own counters be careful when using `succ` or `pred`. For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6)`, but `succ (4 :: Index 5)` is undefined and out of bounds (**DO NOT DO THIS**) because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`; that is why we check for `maxBound` and `minBound` states in `increment` and `decrement`.
 
-Finally, let us now use our new `increment` function to implement a conditional increment `incrementWhen` and `incrementUnless`. The former will increment when a predicate is `True`, the latter when `False`.
+Finally, we use our new `increment` function to implement a conditional increment `incrementWhen` and `incrementUnless`. The former will increment when a predicate is `True`, the latter when `False`.
 ```haskell
 incrementWhen
   :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
@@ -179,9 +179,75 @@ incrementUnless
   -> RWST r w (Counter a) m ()
 incrementUnless p = incrementWhen (not . p)
 ```
-Within `incrementWhen`, we get the counter value and apply our predicate then bind to `b`. Thus, if the predicate evaluates to `True`, `b` is bound to `True` and we increment the counter. Otherwise, we set the value of the counter to its minimum bound. To reduce and reuse code, we implement `incrementUnless` using `incrementWhen` and post-compose `not` to our predicate. Suppose we have `incrementUnless (== 3) :: RWST r w (Counter (Index 8)) m ()`, then the states of the counter would be: ... 0 1 2 3 0 1 2 3 0 1 2 3 ...
+Within `incrementWhen`, we get the counter value and apply our predicate. If the predicate evaluates to `True`, `b` is bound to `True` and we increment the counter. Otherwise, `b` is bound to `False` and we set the value of the counter to its minimum bound. To reduce and reuse code, we implement `incrementUnless` using `incrementWhen` and post-compose `not` to our predicate. Suppose we have `incrementUnless (== 3) :: RWST r w (Counter (Index 8)) m ()`, then the states of the counter would be: ... 0 1 2 3 0 1 2 3 0 1 2 3 ...
 
-To end this section, lets clean then rebuild the library. You should not see any errors.
+Here is our completed counter:
+```haskell
+module Veldt.Counter
+  ( Counter
+  , mkCounter
+  , increment
+  , incrementWhen
+  , incrementUnless
+  , decrement
+  , set
+  , get
+  , gets
+  ) where
+
+import Clash.Prelude
+import Control.Monad.RWS (RWST)
+import qualified Control.Monad.RWS as RWS
+
+-------------
+-- Counter --
+-------------
+newtype Counter a = Counter { unCounter :: a }
+  deriving (NFDataX, Generic)
+
+mkCounter :: a -> Counter a
+mkCounter = Counter
+
+set :: (Monoid w, Monad m) => a -> RWST r w (Counter a) m ()
+set = RWS.put . Counter
+
+get :: (Monoid w, Monad m) => RWST r w (Counter a) m a
+get = RWS.gets unCounter
+
+gets :: (Monoid w, Monad m) => (a -> b) -> RWST r w (Counter a) m b
+gets f = f <$> get
+
+increment :: (Monoid w, Monad m, Bounded a, Enum a, Eq a) => RWST r w (Counter a) m ()
+increment = do
+  c <- get
+  set $ if c == maxBound
+    then minBound
+    else succ c
+
+decrement :: (Monoid w, Monad m, Bounded a, Enum a, Eq a) => RWST r w (Counter a) m ()
+decrement = do
+  c <- get
+  set $ if c == minBound
+    then maxBound
+    else pred c
+
+incrementWhen
+  :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
+  => (a -> Bool)
+  -> RWST r w (Counter a) m ()
+incrementWhen p = do
+  b <- gets p
+  if b
+    then increment
+    else set minBound
+
+incrementUnless
+  :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
+  => (a -> Bool)
+  -> RWST r w (Counter a) m ()
+incrementUnless p = incrementWhen (not . p)
+```
+To end this part, we clean and rebuild the library. You should not see any errors.
 ```console
 foo@bar:~/veldt$ cabal clean
 foo@bar:~/veldt$ cabal build
