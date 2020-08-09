@@ -1,7 +1,7 @@
 # Where Lions Roam: Haskell & Hardware on the VELDT
 
 ## Table of Contents
-1. [Section 0: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#introduction--setup)
+1. [Section 0: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#section-0-introduction--setup)
 2. [Section 1: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#section-1-fiat-lux)
    1. [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#learning-to-count)
    2. [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#its-a-vibe-pwm)
