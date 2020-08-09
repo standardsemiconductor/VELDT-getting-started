@@ -194,6 +194,7 @@ Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
 [1 of 1] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/davos/eda/proj/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o ) [flags changed]
 ```
+You can find the full source code for this section [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). In the next section we will use our counter to create a PWM. 
 ### [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 2: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
