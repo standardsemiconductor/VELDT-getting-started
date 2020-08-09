@@ -155,9 +155,9 @@ decrement = do
     then maxBound
     else pred c
 ```
-Heres the gist: first get the current value of the counter. If the value is equal to its maximum (minimum) bound then set it to the minimum (maximum) bound. Otherwise, increment (decrement) the value and store it.
+Heres the gist: first `get` the current value of the counter. If the value is equal to its maximum (minimum) bound then set the counter to the minimum (maximum) bound. Otherwise, `set` the counter to the value's successor (predecessor). For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6`, but `succ (4 :: Index 5)` is undefined and out-of-bounds **DO NOT DO THIS** because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`.
 
-The typeclass constraint `Bounded` lets us use `minBound` and `maxBound`. Likewise `Eq` lets us compare equality `==` and `Enum` provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. Additionally, the RWS Monad `RWST r w s m a` requires `w` to be a `Monoid` and `m` a `Monad`, this will be important later when we "run" our monadic action.
+The typeclass constraint `Bounded` says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise `Eq` lets us compare equality `==` and `Enum` provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. Additionally, the RWS Monad `RWST r w s m a` requires `w` to be a `Monoid` and `m` a `Monad`, this will be important later when we "run" our monadic action.
 
 Finally, lets now use our new `increment` function to implement a conditional increment `incrementWhen` and `incrementUnless`. The former will increment when a predicate is `True`, the latter when `False`.
 ```haskell
@@ -194,7 +194,7 @@ Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
 [1 of 1] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/davos/eda/proj/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o ) [flags changed]
 ```
-You can find the full source code for this section [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). In the next section we will use our counter to create a PWM. 
+You can find the full source code for this section [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter to create a PWM.
 ### [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 2: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
