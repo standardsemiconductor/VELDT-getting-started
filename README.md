@@ -87,7 +87,7 @@ library
 	ghc-options: -Wall -fexpose-all-unfoldings -fno-worker-wrapper -fplugin=GHC.TypeLits.Extra.Solve\
 r -fplugin=GHC.TypeLits.KnownNat.Solver	-fplugin=GHC.TypeLits.Normalise
 ```
-We won't go through everything about this cabal file, but here are the highlights. `exposed-modules` are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` with a file `Counter.hs`. This will have our counter source code. The `build-depends` section lists our library dependencies. Notably the `clash-prelude` package provides important functions and types that are crucial for hardware. We use `lens` zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the clash compiler infer types. The next section is `default-extensions`, these help us reduce boilerplate and clean up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly, we want to explicitly import the Clash prelude. `ghc-options` turns on warnings and activates plugins.
+We won't go through everything about this cabal file, but here are the highlights. `exposed-modules` are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` with a file `Counter.hs`. This will have our counter source code. The `build-depends` section lists our library dependencies. Notably the `clash-prelude` package provides important functions and types that are crucial for hardware. We use `lens` to zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the clash compiler infer types. The next section is `default-extensions`, these help us reduce boilerplate and clean up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly, we want to explicitly import the Clash prelude. `ghc-options` turns on warnings and activates plugins.
 
 Create a directory `Veldt` with a file `Counter.hs`.
 ```console
@@ -113,7 +113,7 @@ import Clash.Prelude
 import Control.Monad.RWS (RWST)
 import qualified Control.Monad.RWS as RWS
 ```
-The exported types and functions define the API for our counter. We want to be able to increment, decrement, set, or get the counter value. Additionally, we provide conditional increment functions. Its a good exercise to do the same for decrement.
+The exported types and functions define the API for our counter. We want to be able to `increment`, `decrement`, `set`, or `get` the counter value. Additionally, we provide `gets` (`get` with a projection) and conditional increment functions `incrementWhen` and `incrementUnless`.
 
 Lets define the counter type, it will be polymorphic so we may use the counter in different contexts with different underlying counter types e.g. `Counter (Index 25)`, `Counter (Unsigned 32)`, or `Counter (BitVector 8)`
 ```haskell
@@ -122,13 +122,13 @@ newtype Counter a = Counter { unCounter :: a }
 ```
 Clash requires we derive `NFDataX` and `Generic` for any type which will be stored as state in a register.
 
-Next lets define a function which creates a counter. Its very simple, but it highlights a style we use throughout the library; functions prefixed with "mk" are state type constructors.
+Next we define a function which constructs a counter. Although very simple, it highlights a style we use throughout the library; functions prefixed with "mk" are state type constructors, sometimes called "smart constructors".
 ```haskell
 mkCounter :: a -> Counter a
 mkCounter = Counter
 ```
 
-The rest of the API is monadic. This is an opinion, you don't have to use monads to make a counter, but this guide does. We advise you to explore other styles, techniques and representations. That being said, we choose to represent mealy machines as Reader-Writer-State monads or RWS for short. In order to easily compose monadic functions we use the concrete RWS transformer from [mtl](http://hackage.haskell.org/package/mtl). It has the type `RWST r w s m a`. Although the counter does not use the Reader or Writer types `r` and `w`, other components in the library will and this eases composition, e.g. when we want to make a UART with both a counter and serializer. Lets define some simple functions to access or mutate our counter.
+The rest of the API is monadic. This is an opinion, you don't have to use monads to make a counter, but this guide does. We advise you to explore other styles, techniques and representations. That being said, we choose to represent mealy machines as Reader-Writer-State monads or RWS for short. In order to easily compose monadic functions we use the concrete RWS transformer from [mtl](http://hackage.haskell.org/package/mtl). It has the type `RWST r w s m a`. Although the counter does not use the Reader or Writer types `r` and `w`, other components in the library will and this eases composition, e.g. when we want to make a UART with both a counter and serializer. Let's define some simple functions to access or mutate our counter.
 ```haskell
 set :: (Monoid w, Monad m) => a -> RWST r w (Counter a) m ()
 set = RWS.put . Counter
@@ -155,7 +155,7 @@ decrement = do
     then maxBound
     else pred c
 ```
-Heres the gist: first `get` the current value of the counter. If the value is equal to its maximum (minimum) bound then set the counter to the minimum (maximum) bound. Otherwise, `set` the counter to the value's successor (predecessor). 
+Here's the gist: first `get` the current value of the counter. If the value is equal to its maximum (minimum) bound then set the counter to the minimum (maximum) bound. Otherwise, `set` the counter to the value's successor (predecessor). 
 
 The typeclass constraint `Bounded` says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise `Eq` lets us compare equality `==` and `Enum` provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. Additionally, the RWS Monad `RWST r w s m a` requires `w` to be a `Monoid` and `m` a `Monad`, this will be important later when we "run" our monadic action.
 
