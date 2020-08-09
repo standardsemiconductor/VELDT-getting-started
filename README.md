@@ -19,7 +19,7 @@ Much of the code included in the examples is written in Haskell and compiled to 
   
 We use the Project IceStorm flow for synthesis, routing, and programming. These are excellent, well-maintained open source tools. For installation and setup instructions visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#project-icestorm) repo.
 
-This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 1](https://github.com/standardsemiconductor/VELDT-getting-started#section-1-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 2](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-roar) covers serializers and deserializers which are used to construct a UART. In [Section 3](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-pride) we learn how to interact with the memory provided by VELDT. Finally, in [Section 4](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-where-lions-roam) we design a simple CPU with a custom ISA, then integrate our LED, UART, and memory peripherals to create a stored-program computer. By the end of the guide, you will have a library of commonly used sub-components along with a directory of applications demonstrating their useage. The library and demos explained in this guide are available in this repo, see the [veldt] and [test] directories.
+This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 1](https://github.com/standardsemiconductor/VELDT-getting-started#section-1-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 2](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-roar) covers serializers and deserializers which are used to construct a UART. In [Section 3](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-pride) we learn how to interact with the memory provided by VELDT. Finally, in [Section 4](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-where-lions-roam) we design a simple CPU with a custom ISA, then integrate our LED, UART, and memory peripherals to create a stored-program computer. By the end of the guide, you will have a library of commonly used sub-components along with a directory of applications demonstrating their useage. The library and demos explained in this guide are available in this repo, see the [veldt](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/veldt) and [test] directories.
 
 Finally, if you have any suggestions, comments, discussions, edits additions etc. please open an issue in this repo. We value any and all contributions. Lets get started!
 ## [Section 1: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
@@ -87,15 +87,15 @@ library
 	ghc-options: -Wall -fexpose-all-unfoldings -fno-worker-wrapper -fplugin=GHC.TypeLits.Extra.Solve\
 r -fplugin=GHC.TypeLits.KnownNat.Solver	-fplugin=GHC.TypeLits.Normalise
 ```
-If you don't feel like typing this, just copy the `veldt.cabal` file in the [veldt] directory of this repo. We won't go through everything about this cabal file, but here are the highlights. `exposed-modules` are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` then inside create a file `Counter.hs`. This will have our counter source code. The `build-depends` section lists our library dependencies. Notably the `clash-prelude` package provides important functions and types that are crucial for hardware. We use `lens` to make working with data types easier and especially "zooming" into substates. `interpolate` is used for inline primitives when we need have Yosys infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins help the clash compiler infer types. The next section is `default-extensions`, these help us reduce boilerplate and clean up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly, we want to explicitly import the Clash prelude. `ghc-options` turns on warnings and activates plugins.
+We won't go through everything about this cabal file, but here are the highlights. `exposed-modules` are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` with a file `Counter.hs`. This will have our counter source code. The `build-depends` section lists our library dependencies. Notably the `clash-prelude` package provides important functions and types that are crucial for hardware. We use `lens` zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the clash compiler infer types. The next section is `default-extensions`, these help us reduce boilerplate and clean up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly, we want to explicitly import the Clash prelude. `ghc-options` turns on warnings and activates plugins.
 
-Create a directory `Veldt`
+Create a directory `Veldt` with a file `Counter.hs`.
 ```console
 foo@bar:~/veldt$ mkdir Veldt && cd Veldt
 foo@bar:~/veldt/Veldt$ touch Counter.hs
 ```
 
-Open `Counter.hs` in your favorite editor. Lets name the module, define the api and import some useful packages:
+Open `Counter.hs` in your favorite editor. Lets name the module, list the exports and import some useful packages:
 ```haskell
 module Veldt.Counter
   ( Counter
@@ -113,20 +113,22 @@ import Clash.Prelude
 import Control.Monad.RWS (RWST)
 import qualified Control.Monad.RWS as RWS
 ```
-The exported types and functions define the api for our counter. We want to be able to increment, decrement, set, or get the counter value. Additionally, we provide a conditional increment function. Its a good exercise to do the same for decrement.
+The exported types and functions define the API for our counter. We want to be able to increment, decrement, set, or get the counter value. Additionally, we provide conditional increment functions. Its a good exercise to do the same for decrement.
 
 Lets define the counter type, it will be polymorphic so we may use the counter in different contexts with different underlying counter types e.g. `Counter (Index 25)`, `Counter (Unsigned 32)`, or `Counter (BitVector 8)`
 ```haskell
 newtype Counter a = Counter { unCounter :: a }
   deriving (NFDataX, Generic)
 ```
-Clash requires we derive `NFDataX` and `Generic` for any type which will be stored as state in a register. Next lets define a function which creates a counter. Its very simple, but it highlights a style we use throughout the library, functions prefixed with "mk" are state type constructors.
+Clash requires we derive `NFDataX` and `Generic` for any type which will be stored as state in a register.
+
+Next lets define a function which creates a counter. Its very simple, but it highlights a style we use throughout the library; functions prefixed with "mk" are state type constructors.
 ```haskell
 mkCounter :: a -> Counter a
 mkCounter = Counter
 ```
 
-The rest of the api is monadic. This is an opinion, you don't have to use monads to make a counter, but this guide does. We advise you to explore other styles, techniques and representations. That being said, we choose to represent mealy machines as Reader-Writer-State monads or RWS for short. In order to easily compose monadic functions we use the concrete RWS transformer from [mtl](http://hackage.haskell.org/package/mtl). It has the type `RWST r w s m a`. Although the counter does not use the Reader or Writer types `r` and `w`, other components in the library will and this eases composition, e.g. when we want to make a UART with both a counter and serializer. Lets define some simple functions to access or mutate our counter.
+The rest of the API is monadic. This is an opinion, you don't have to use monads to make a counter, but this guide does. We advise you to explore other styles, techniques and representations. That being said, we choose to represent mealy machines as Reader-Writer-State monads or RWS for short. In order to easily compose monadic functions we use the concrete RWS transformer from [mtl](http://hackage.haskell.org/package/mtl). It has the type `RWST r w s m a`. Although the counter does not use the Reader or Writer types `r` and `w`, other components in the library will and this eases composition, e.g. when we want to make a UART with both a counter and serializer. Lets define some simple functions to access or mutate our counter.
 ```haskell
 set :: (Monoid w, Monad m) => a -> RWST r w (Counter a) m ()
 set = RWS.put . Counter
