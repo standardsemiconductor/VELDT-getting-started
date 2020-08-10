@@ -82,7 +82,8 @@ library
                             TemplateHaskell,
                             LambdaCase,
                             TupleSections,
-                            TypeOperators
+                            TypeOperators,
+			    QuasiQuotes
         default-language: Haskell2010
 	ghc-options: -Wall -fexpose-all-unfoldings -fno-worker-wrapper -fplugin=GHC.TypeLits.Extra.Solve\
 r -fplugin=GHC.TypeLits.KnownNat.Solver	-fplugin=GHC.TypeLits.Normalise
@@ -380,6 +381,33 @@ Building library for veldt-0.1.0.0..
 ```
 You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP, then use our PWM to create a Blinker demo.
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating. However, we first need to write a RGB primtive which our PWM uses to drive the LED. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. When we synthesize the project, Yosys will infer the Lattice Ice40 RGB Driver IP. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `RgbDriver.hs` file which will be our RGB Driver primitive.
+```console
+foo@bar:~/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/RgbDriver.hs
+```
+Next add the `Veldt.Ice40.RgbDriver` to our `veldt.cabal` `exposed-modules` list.
+```
+...
+exposed-modules: Veldt.Counter,
+                 Veldt.PWM,
+                 Veldt.Ice40.RgbDriver
+...
+```
+Now edit `RgbDriver.hs`. We inline the Verilog primitive (meaning we have Verilog and Haskell in the same module), and then wrap it with a function to ease usage. Let's start by naming the module, its exports, and its imports.
+```haskell
+module Veldt.Ice40.RgbDriver
+  ( Rgb
+  , rgbDriver
+  ) where
+
+import Clash.Prelude
+import Clash.Annotations.Primitive
+import Data.String.Interpolate (i)
+import Data.String.Interpolate.Util (unindent)
+```
+We export the `Rgb` type which is the input/output type of our primitive and a wrapper function `rgbDriver` for the primitive. Additionally we import `Clash.Annotations.Primitive` which supplies code for writing primitives. Since the primtive will be inlined we use the [interpolate](https://hackage.haskell.org/package/interpolate) package for string interpolation.
+
+Now we create the primtive.
 ## [Section 2: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 3: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
