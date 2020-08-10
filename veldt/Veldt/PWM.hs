@@ -10,6 +10,9 @@ import Control.Lens
 import Control.Monad.RWS
 import qualified Veldt.Counter as C
 
+---------
+-- PWM --
+---------
 data PWM a = PWM
   { _ctr  :: C.Counter a
   , _duty :: a

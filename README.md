@@ -303,16 +303,16 @@ makeLenses ''PWM
 mkPWM :: Bounded a => a -> PWM a
 mkPWM d = PWM (C.mkCounter minBound) d
 ```
-The PWM state consists of a counter and a value used to control the duty cycle. Additionally, our smart constructor takes an initial duty value, but it always sets the counter to the minimum bound. Also, note that we keep `PWM` polymorphic, just like our counter.
+The PWM state consists of a counter and a value used to control the duty cycle. Also, note that we keep `PWM` polymorphic, just like our counter. Our smart constructor creates a PWM with an initial duty cycle and a counter with an initial value set to the minimum bound. 
 
-Let's define and implement `setDuty` which will update the `duty` value and reset the counter.
+Let's define and implement `setDuty` which will update the `duty` cycle and reset the counter.
 ```haskell
 setDuty :: (Monoid w, Monad m, Bounded a) => a -> RWST r w (PWM a) m ()
 setDuty d = do
   duty .= d
   zoom ctr $ C.set minBound
 ```
-We use the `.=` lens operator to update the `duty`. Then we use `zoom` to `set` the counter to its minimum bound. We use `setDuty` to change the duty cycle of the PWM. For example, suppose we have `setDuty 25 :: RWST r w (PWM (Index 100)) m ()`, then the PWM will operate at 25% duty cycle.
+We use the `.=` lens operator to set the `duty` cycle, then we use `zoom` to `set` the counter to its minimum bound. We use `setDuty` to change the duty cycle of the PWM. For example, suppose we have `setDuty 25 :: RWST r w (PWM (Index 100)) m ()`, then the PWM will operate at 25% duty cycle.
 
 Finally, we tackle the `pwm` function.
 ```haskell
@@ -323,7 +323,62 @@ pwm = do
   zoom ctr C.increment
   return $ boolToBit $ c < d
 ```
-First we bind `duty` to `d` and the counter value to `c`. Next we `increment` the counter. Last, we compare `c < d`, convert the `boolToBit`, and `return`. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remeber `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
+First we bind `duty` to `d` and the counter value to `c`. Next we `increment` the counter. Last, we compare `c < d`, convert the `boolToBit`, and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remeber `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
+
+Here is the complete `PWM.hs` source code:
+```haskell
+module Veldt.PWM
+  ( PWM
+  , mkPWM
+  , pwm
+  , setDuty
+  ) where
+
+import Clash.Prelude
+import Control.Lens
+import Control.Monad.RWS
+import qualified Veldt.Counter as C
+
+---------
+-- PWM --
+---------
+data PWM a = PWM
+  { _ctr  :: C.Counter a
+  , _duty :: a
+  } deriving (NFDataX, Generic)
+makeLenses ''PWM
+
+mkPWM :: Bounded a => a -> PWM a
+mkPWM d = PWM (C.mkCounter minBound) d
+
+setDuty :: (Monoid w, Monad m, Bounded a) => a -> RWST r w (PWM a) m ()
+setDuty d = do
+  duty .= d
+  zoom ctr $ C.set minBound
+
+pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
+pwm = do
+  d <- use duty
+  c <- zoom ctr C.get
+  zoom ctr C.increment
+  return $ boolToBit $ c < d
+```
+To end this part, we clean and rebuild the library. You should not see any errors.
+```console
+foo@bar:~/veldt$ cabal clean && cabal build
+Resolving dependencies...
+Build profile: -w ghc-8.8.3 -O1
+In order, the following will be built (use -v for more details):
+ - veldt-0.1.0.0 (lib) (first run)
+Configuring library for veldt-0.1.0.0..
+Warning: The 'license-file' field refers to the file 'LICENSE' which does not
+exist.
+Preprocessing library for veldt-0.1.0.0..
+Building library for veldt-0.1.0.0..
+[1 of 2] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
+[2 of 2] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
+```
+You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP, then use our PWM to create a Blinker demo.
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 2: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 3: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
