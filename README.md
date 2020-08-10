@@ -5,7 +5,8 @@
 2. [Section 2: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-fiat-lux)
    1. [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#learning-to-count)
    2. [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#its-a-vibe-pwm)
-   3. [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#fiat-lux-blinker)
+   3. [Drive: RGB Primitive](https://github.com/standardsemiconductor/VELDT-getting-started#drive-rgb-primitive)
+   4. [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#fiat-lux-blinker)
 3. [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar)
 4. [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-pride)
 5. [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#section-5-where-lions-roam)
@@ -379,9 +380,9 @@ Building library for veldt-0.1.0.0..
 [1 of 2] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
 [2 of 2] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
 ```
-You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP, then use our PWM to create a Blinker demo.
-### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating. However, we first need to write a RGB primtive which our PWM uses to drive the LED. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. When we synthesize the project, Yosys will infer the Lattice Ice40 RGB Driver IP. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `RgbDriver.hs` file which will be our RGB Driver primitive.
+You can find the full PWM source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP.
+### [Drive: RGB Primitive](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+We need one more component before starting our demo. This component is a RGB LED Driver; it takes 3 PWM signals (R, G, B) to drive the LED. Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `RgbDriver.hs` file which will be our RGB Driver primitive.
 ```console
 foo@bar:~/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/RgbDriver.hs
 ```
@@ -480,7 +481,99 @@ rgbDriver rgb = let (r, g, b) = unbundle rgb
 ```
 `unbundle` is part of a `Signal` isomorphism, the other part being `bundle`. In this case, `unbundle` maps the type `Signal dom (Bit, Bit, Bit)` to `(Signal dom Bit, Signal dom Bit, Signal dom Bit)`. The `String` parameters we give to `rgbDriverPrim` define the current and mode outputs for the driver. It may be prudent to adjust these parameters depending on the power requirements of your application. It is a good exercise to define a custom current/mode data type and use that in the wrapper `rgbDriver` for easy usage.
 
-We now move onto creating a blinker.
+Here is the complete `RgbDriver.hs` source code:
+```haskell
+module Veldt.Ice40.RgbDriver
+  ( Rgb
+  , rgbDriver
+  ) where
+
+import Clash.Prelude
+import Clash.Annotations.Primitive
+import Data.String.Interpolate (i)
+import Data.String.Interpolate.Util (unindent)
+
+{-# ANN rgbDriverPrim (InlinePrimitive [Verilog] $ unindent [i|
+  [ { "BlackBox" :
+      { "name" : "Veldt.Ice40.RgbDriver.rgbDriverPrim"
+      , "kind" : "Declaration"
+      , "type" :
+  "rgbDriverPrim
+  :: String         -- current_mode ARG[0]
+  -> String         -- rgb0_current ARG[1]
+  -> String         -- rgb1_current ARG[2]
+  -> String         -- rgb2_current ARG[3]
+  -> Signal dom Bit -- pwm_r        ARG[4]
+  -> Signal dom Bit -- pwm_g        ARG[5]
+  -> Signal dom Bit -- pwm_b        ARG[6]
+  -> Signal dom (Bit, Bit, Bit)"
+      , "template" :
+  "//SB_RGBA_DRV begin
+  wire ~GENSYM[RED][0];
+  wire ~GENSYM[GREEN][1];
+  wire ~GENSYM[BLUE][2];
+
+  SB_RGBA_DRV #(
+     .CURRENT_MODE(~ARG[0]),
+     .RGB0_CURRENT(~ARG[1]),
+     .RGB1_CURRENT(~ARG[2]),
+     .RGB2_CURRENT(~ARG[3])
+  ) RGBA_DRIVER (
+     .CURREN(1'b1),
+     .RGBLEDEN(1'b1),
+     .RGB0PWM(~ARG[4]),
+     .RGB1PWM(~ARG[5]),
+     .RGB2PWM(~ARG[6]),
+     .RGB0(~SYM[0]),
+     .RGB1(~SYM[1]),
+     .RGB2(~SYM[2])
+  );
+ 
+  assign ~RESULT = {~SYM[0], ~SYM[1], ~SYM[2]};
+  //SB_RGBA_DRV end"
+      }
+    } 
+  ]
+  |]) #-}
+
+{-# NOINLINE rgbDriverPrim #-}
+rgbDriverPrim
+  :: String
+  -> String
+  -> String
+  -> String
+  -> Signal dom Bit
+  -> Signal dom Bit
+  -> Signal dom Bit
+  -> Signal dom (Bit, Bit, Bit)
+rgbDriverPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
+
+type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
+
+rgbDriver :: Signal dom Rgb -> Signal dom Rgb
+rgbDriver rgb = let (r, g, b) = unbundle rgb
+                in rgbDriverPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
+```
+
+To end this part, we clean and rebuild the library. You should not see any errors.
+```console
+foo@bar:~/veldt$ cabal clean && cabal build
+Resolving dependencies...
+Build profile: -w ghc-8.8.3 -O1
+In order, the following will be built (use -v for more details):
+ - veldt-0.1.0.0 (lib) (first run)
+Configuring library for veldt-0.1.0.0..
+Warning: The 'license-file' field refers to the file 'LICENSE' which does not
+exist.
+Preprocessing library for veldt-0.1.0.0..
+Building library for veldt-0.1.0.0..
+[1 of 3] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
+[2 of 3] Compiling Veldt.Ice40.RgbDriver ( Veldt/Ice40/RgbDriver.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Ice40/RgbDriver.o )
+[3 of 3] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
+```
+You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/RgbDriver.hs). We now move onto creating a blinker.
+### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating.
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
