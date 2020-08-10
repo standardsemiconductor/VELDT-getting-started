@@ -115,7 +115,7 @@ import qualified Control.Monad.RWS as RWS
 ```
 The exported types and functions define the API for our counter. We want to be able to `increment`, `decrement`, `set`, or `get` the counter value. Additionally, we provide `gets` (`get` with a projection) and conditional increment functions `incrementWhen` and `incrementUnless`.
 
-Lets define the counter type, it will be polymorphic so we may use the counter in different contexts with different underlying counter types e.g. `Counter (Index 25)`, `Counter (Unsigned 32)`, or `Counter (BitVector 8)`
+Let's define the counter type, it will be polymorphic so we may use the counter in different contexts with different underlying counter types e.g. `Counter (Index 25)`, `Counter (Unsigned 32)`, or `Counter (BitVector 8)`
 ```haskell
 newtype Counter a = Counter { unCounter :: a }
   deriving (NFDataX, Generic)
@@ -260,10 +260,70 @@ Warning: The 'license-file' field refers to the file 'LICENSE' which does not
 exist.
 Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
-[1 of 1] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/davos/eda/proj/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o ) [flags changed]
+[1 of 1] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o ) [flags changed]
 ```
 You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter to create a PWM.
 ### [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+Pulse Width Modulation or PWM is used to drive our LED. We use a technique called [time proportioning](https://en.wikipedia.org/wiki/Pulse-width_modulation#Time_proportioning) to generate the PWM signal with our counter. To begin let's create a `PWM.hs` file in the `Veldt` directory.
+```console
+foo@bar:~/veldt/Veldt$ touch PWM.hs
+```
+We also need to expose the PWM module with cabal by editing the `exposed-modules` section of `veldt.cabal` to include `Veldt.PWM`.
+```
+......
+library
+        exposed-modules: Veldt.Counter,
+	                 Veldt.PWM
+......
+```
+Now begin editing the `PWM.hs` file. We start by naming the module, defining our exports, and importing useful packages.
+```haskell
+module Veldt.PWM
+  ( PWM
+  , mkPWM
+  , pwm
+  , setDuty
+  ) where
+
+import Clash.Prelude
+import Control.Lens
+import Control.Monad.RWS
+import qualified Veldt.Counter as C
+```
+We export the type `PWM` and its smart constructor `mkPWM`. The monadic API consists of `pwm`, a PWM action, and a setter `setDuty` to mutate the duty cycle. In this module we will be using [lens](https://hackage.haskell.org/package/lens) to mutate and zoom sub-states. Again, we use the RWS monad. Finally we import our counter as qualified so as not to conflict `RWS`'s `get` with `Counter`'s `get`. This means whenever we want to use an exported function from `Veldt.Counter` we must prefix it with `C.`.
+
+Next we define the `PWM` type and its constructor. Note how we use `makeLenses` to automatically create lenses for our `PWM` type.
+```haskell
+data PWM a = PWM
+  { _ctr  :: C.Counter a
+  , _duty :: a
+  } deriving (NFDataX, Generic)
+makeLenses ''PWM
+
+mkPWM :: Bounded a => a -> PWM a
+mkPWM d = PWM (C.mkCounter minBound) d
+```
+The PWM state consists of a counter and a value used to control the duty cycle. Additionally, our smart constructor takes an initial duty value, but it always sets the counter to the minimum bound. Also, note that we keep `PWM` polymorphic, just like our counter.
+
+Let's define and implement `setDuty` which will update the `duty` value and reset the counter.
+```haskell
+setDuty :: (Monoid w, Monad m, Bounded a) => a -> RWST r w (PWM a) m ()
+setDuty d = do
+  duty .= d
+  zoom ctr $ C.set minBound
+```
+We use the `.=` lens operator to update the `duty`. Then we use `zoom` to `set` the counter to its minimum bound. We use `setDuty` to change the duty cycle of the PWM. For example, suppose we have `setDuty 25 :: RWST r w (PWM (Index 100)) m ()`, then the PWM will operate at 25% duty cycle.
+
+Finally, we tackle the `pwm` function.
+```haskell
+pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
+pwm = do
+  d <- use duty
+  c <- zoom ctr C.get
+  zoom ctr C.increment
+  return $ boolToBit $ c < d
+```
+First we bind `duty` to `d` and the counter value to `c`. Next we `increment` the counter. Last, we compare `c < d`, convert the `boolToBit`, and `return`. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remeber `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 2: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 3: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)

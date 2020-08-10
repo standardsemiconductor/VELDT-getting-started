@@ -17,7 +17,8 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-        exposed-modules: Veldt.Counter
+        exposed-modules: Veldt.Counter,
+                         Veldt.PWM
         build-depends: clash-prelude,
                        mtl,
                        lens,
