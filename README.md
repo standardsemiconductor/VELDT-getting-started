@@ -473,7 +473,7 @@ Instead of constantly writing `(Bit, Bit, Bit)` for our RGB tuple, let's define 
 ```haskell
 type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
 ```
-Finally, using our `Rgb` type, we wrap the primitive and give it some parameters default.
+Finally, using our `Rgb` type, we wrap the primitive and give it some default parameters.
 ```haskell
 rgbDriver :: Signal dom Rgb -> Signal dom Rgb
 rgbDriver rgb = let (r, g, b) = unbundle rgb
