@@ -573,7 +573,11 @@ Building library for veldt-0.1.0.0..
 ```
 You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/RgbDriver.hs). We now move onto creating a blinker.
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating.
+This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal.
+```console
+foo@bar:~$ mkdir -p demo/blinker && cd demo/blinker && cabal init
+```
+The `blinker.cabal` file will look similar to `veldt.cabal`, except our top-level module `Blinker` is the only exposed module, and we add `clash-ghc` and `veldt` to our `build-depends` list. Additionally, we tell cabal where to find our `veldt` library with a `cabal.project` file.
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
