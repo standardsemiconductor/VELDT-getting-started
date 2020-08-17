@@ -84,7 +84,9 @@ library
                             LambdaCase,
                             TupleSections,
                             TypeOperators,
-			    QuasiQuotes
+			    QuasiQuotes,
+			    ViewPatterns,
+			    BinaryLiterals
         default-language: Haskell2010
 	ghc-options: -Wall -fexpose-all-unfoldings -fno-worker-wrapper -fplugin=GHC.TypeLits.Extra.Solve\
 r -fplugin=GHC.TypeLits.KnownNat.Solver	-fplugin=GHC.TypeLits.Normalise
