@@ -639,11 +639,51 @@ We start by naming our module and importing dependencies.
 module Blinker where
 
 import Clash.Prelude
+import Clash.Annotations.TH
+import Control.Monad.RWS
+import Control.Lens
 import qualified Veldt.Counter         as C
 import qualified Veldt.PWM             as P
 import qualified Veldt.Ice40.RgbDriver as R
 ```
-We find that using qualified imports helps to quickly determine which modules functions and types originate from when reading source code or looking up type signatures.
+We find that using qualified imports helps to quickly determine which modules functions and types originate from when reading source code or looking up type signatures. `Clash.Annotations.TH` includes functions to name the top entity module which is useful for synthesis.
+
+Let's define some types to get a feel for the state space.
+```haskell
+type Byte = BitVector 8
+
+data Color = Off | Red | Green | Blue | White
+  deriving (NFDataX, Generic, Enum)
+
+data Blinker = Blinker
+  { _color    :: Color
+  , _redPWM   :: P.PWM Byte
+  , _greenPWM :: P.PWM Byte
+  , _bluePWM  :: P.PWM Byte
+  , _timer    :: C.Counter (Unsigned 25)
+  } deriving (NFDataX, Generic)
+makeLenses ''Blinker
+
+mkBlinker :: Blinker
+mkBlinker = Blinker
+  { _color    = Off
+  , _redPWM   = P.mkPWM 0
+  , _greenPWM = P.mkPWM 0
+  , _bluePWM  = P.mkPWM 0
+  , _timer    = C.mkCounter 0
+  } 
+```
+The blinker needs a color, three PWMs (one to drive each RGB signal), and a timer which will indicate when the color should change. We also create the `mkBlinker` smart constructor which initializes the color to `Off` and sets each PWM duty cycle to `0` and the timer to `0`. We derive `Enum` for `Color` so we can use `succ`, e.g. `succ Red == Green`.
+
+Next, we create a `toPWM` function to convert a `Color` into its RGB triple which we use to set the PWM duty cycles.
+```haskell
+toPWM :: Color -> (Byte, Byte, Byte)
+toPWM Off   = (0,    0,    0   )
+toPWM Red   = (0xFF, 0,    0   )
+toPWM Green = (0,    0xFF, 0   )
+toPWM Blue  = (0,    0,    0xFF)
+toPWM White = (0xFF, 0xFF, 0xFF)
+```
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
