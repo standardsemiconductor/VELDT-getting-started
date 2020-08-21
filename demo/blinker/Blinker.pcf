@@ -1,0 +1,62 @@
+# set_io iob_0a 46 # iob_0a
+# set_io iob_2a 47 # iob_2a
+
+# set_io iob_3b_g6  44 # iob_3b_g6
+
+# set_io iob_4a 48 # iob_4a
+# set_io iob_5b 45 # iob_5b
+# set_io iob_6a 2  # iob_6a
+# set_io iob_8a 4  # iob_8a
+# set_io iob_9b 3  # iob_9b
+
+# set_io creset_b 8 # creset_b
+
+# set_io iob_13b 6 # iob_13b
+
+# set_io cdone 7 # cdone
+
+# set_io iob_16a 9  # iob_16a mem_biwo
+# set_io iob_18a 10 # iob_18a mem_wck
+# set_io iob_20a 11 # iob_20a mem_bowi
+# set_io iob_22b 12 # iob_22b mem_wp 
+# set_io iob_23b 21 # iob_23b mem_hold
+# set_io iob_24a 13 # iob_24a mem_cs
+
+# set_io iob_25b_g3 20 # iob_25b_g3
+
+# set_io iob_29b 19 # iob_29b
+# set_io iob_31b 18 # iob_31b
+
+# set_io iob_32a_spi_wo  14 # iob_32a_spi_wo  ice_biwo
+# set_io iob_33b_spi_wi  17 # iob_33b_spi_wi  ice_bowi uart_tx
+# set_io iob_34a_spi_wck 15 # iob_34a_spi_wck ice_wck  uart_rx
+# set_io iob_35b_spi_csn 16 # iob_35b_spi_csn ice_cs
+
+# set_io iot_36b 25 # iot_36b
+# set_io iot_37a 23 # iot_37a
+# set_io iot_38b 27 # iot_38b
+# set_io iot_39a 26 # iot_39a
+# set_io iot_41a 28 # iot_41a
+# set_io iot_42b 31 # iot_42b
+# set_io iot_43a 32 # iot_43a
+# set_io iot_44b 34 # iot_44b
+
+# set_io iot_45a_g1 37 # iot_45a_g1
+set_io clk 35 # iot_46b_g0 12Mhz Xtal
+
+# set_io iot_48b 36 # iot_48b
+# set_io iot_49a 43 # iot_49a
+# set_io iot_50b 38 # iot_50b
+# set_io iot_51a 42 # iot_51a
+
+set_io led_blue  41 # rgb2 blue
+set_io led_green 40 # rgb1 green
+set_io led_red   39 # rgb0 red
+
+# set_io vcc_0      5  # vcc
+# set_io vcc_1      30 # vcc
+# set_io vccio_0    33 # vccio_0
+# set_io vccio_2    1  # vccio_2
+# set_io spi_vccio1 22 # spi_vccio1
+# set_io vccpll     29 # vccpll
+# set_io vpp_2v5    24 # vpp_2v5

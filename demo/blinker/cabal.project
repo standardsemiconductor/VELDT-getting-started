@@ -1,2 +1,2 @@
 packages: ./blinker.cabal,
-          ../veldt/veldt.cabal
+          ../../veldt/veldt.cabal
