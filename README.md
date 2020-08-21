@@ -384,21 +384,21 @@ Building library for veldt-0.1.0.0..
 ```
 You can find the full PWM source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP.
 ### [Drive: RGB Primitive](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-We need one more component before starting our demo. This component is a RGB LED Driver; it takes 3 PWM signals (R, G, B) to drive the LED. Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `RgbDriver.hs` file which will be our RGB Driver primitive.
+We need one more component before starting our demo. This component is a RGB LED Driver; it takes 3 PWM signals (R, G, B) to drive the LED. Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP (SB_RGBA_DRV) from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `Rgb.hs` file which will be our RGB Driver primitive.
 ```console
-foo@bar:~/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/RgbDriver.hs
+foo@bar:~/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/Rgb.hs
 ```
-Next add the `Veldt.Ice40.RgbDriver` to our `veldt.cabal` `exposed-modules` list.
+Next add the `Veldt.Ice40.Rgb` to our `veldt.cabal` `exposed-modules` list.
 ```
 ...
 exposed-modules: Veldt.Counter,
                  Veldt.PWM,
-                 Veldt.Ice40.RgbDriver
+                 Veldt.Ice40.Rgb
 ...
 ```
-Now edit `RgbDriver.hs`. We inline the Verilog primitive (meaning we have Verilog and Haskell in the same module), and then wrap it with a function to ease usage. Let's start by naming the module, its exports, and its imports.
+Now edit `Rgb.hs`. We inline the Verilog primitive (meaning we have Verilog and Haskell in the same module), and then wrap it with a function to ease usage. Let's start by naming the module, its exports, and its imports.
 ```haskell
-module Veldt.Ice40.RgbDriver
+module Veldt.Ice40.Rgb
   ( Rgb
   , rgbDriver
   ) where
@@ -412,12 +412,12 @@ We export the `Rgb` type which is the input/output type of our primitive and a w
 
 Now we create the primtive.
 ```haskell
-{-# ANN rgbDriverPrim (InlinePrimitive [Verilog] $ unindent [i|
+{-# ANN rgbPrim (InlinePrimitive [Verilog] $ unindent [i|
   [ { "BlackBox" :
-      { "name" : "Veldt.Ice40.RgbDriver.rgbDriverPrim"
+      { "name" : "Veldt.Ice40.Rgb.rgbPrim"
       , "kind" : "Declaration"
       , "type" :
-  "rgbDriverPrim
+  "rgbPrim
   :: String         -- current_mode ARG[0]
   -> String         -- rgb0_current ARG[1]
   -> String         -- rgb1_current ARG[2]
@@ -458,7 +458,7 @@ Now we create the primtive.
 When writing primitives be sure the function name, module name, and black box name all match. The template is Verilog from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info/blob/master/ICE40LEDDriverUsageGuide.pdf). The documentation for writing primitives is on the [clash-prelude](https://hackage.haskell.org/package/clash-prelude) hackage page in the `Clash.Annotations.Primitive` module. Basically, the `SB_RGBA_DRV` module takes 3 PWM input signals and outputs 3 LED driver signals. We adopt the style to prefix any primitive functions with `Prim`. Let's give a Haskell function stub for the primitive.
 ```haskell
 {-# NOINLINE rgbDriverPrim #-}
-rgbDriverPrim
+rgbPrim
   :: String
   -> String
   -> String
@@ -467,9 +467,9 @@ rgbDriverPrim
   -> Signal dom Bit
   -> Signal dom Bit
   -> Signal dom (Bit, Bit, Bit)
-rgbDriverPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
+rgbPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
 ```
-Although we do not provide a real implementation for the the primitive in Haskell, it is good practice to do so and helps when testing and modeling. Also, note the type of `rgbDriverPrim` matches exactly to the inlined primitive type and has a `NOINLINE` annotation.
+Although we do not provide a real implementation for the the primitive in Haskell, it is good practice to do so and helps when testing and modeling. Also, note the type of `rgbPrim` matches exactly to the inlined primitive type and has a `NOINLINE` annotation.
 
 Instead of constantly writing `(Bit, Bit, Bit)` for our RGB tuple, let's define a type synonym with some tags which are useful when constraining pins.
 ```haskell
@@ -477,17 +477,17 @@ type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
 ```
 Finally, using our `Rgb` type, we wrap the primitive and give it some default parameters.
 ```haskell
-rgbDriver :: Signal dom Rgb -> Signal dom Rgb
-rgbDriver rgb = let (r, g, b) = unbundle rgb
-                in rgbDriverPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
+rgb :: Signal dom Rgb -> Signal dom Rgb
+rgb rgbPWM = let (r, g, b) = unbundle rgb
+             in rgbPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
 ```
-`unbundle` is part of a `Signal` isomorphism, the other part being `bundle`. In this case, `unbundle` maps the type `Signal dom (Bit, Bit, Bit)` to `(Signal dom Bit, Signal dom Bit, Signal dom Bit)`. The `String` parameters we give to `rgbDriverPrim` define the current and mode outputs for the driver. It may be prudent to adjust these parameters depending on the power requirements of your application. It is a good exercise to define a custom current/mode data type and use that in the wrapper `rgbDriver` for easy usage.
+`unbundle` is part of a `Signal` isomorphism, the other part being `bundle`. In this case, `unbundle` maps the type `Signal dom (Bit, Bit, Bit)` to `(Signal dom Bit, Signal dom Bit, Signal dom Bit)`. The `String` parameters we give to `rgbPrim` define the current and mode outputs for the driver. It may be prudent to adjust these parameters depending on the power requirements of your application. It is a good exercise to define a custom current/mode data type and use that in the wrapper `rgb` for easy usage.
 
-Here is the complete `RgbDriver.hs` source code:
+Here is the complete `Rgb.hs` source code:
 ```haskell
-module Veldt.Ice40.RgbDriver
+module Veldt.Ice40.Rgb
   ( Rgb
-  , rgbDriver
+  , rgb
   ) where
 
 import Clash.Prelude
@@ -495,12 +495,12 @@ import Clash.Annotations.Primitive
 import Data.String.Interpolate (i)
 import Data.String.Interpolate.Util (unindent)
 
-{-# ANN rgbDriverPrim (InlinePrimitive [Verilog] $ unindent [i|
+{-# ANN rgbPrim (InlinePrimitive [Verilog] $ unindent [i|
   [ { "BlackBox" :
-      { "name" : "Veldt.Ice40.RgbDriver.rgbDriverPrim"
+      { "name" : "Veldt.Ice40.Rgb.rgbPrim"
       , "kind" : "Declaration"
       , "type" :
-  "rgbDriverPrim
+  "rgbPrim
   :: String         -- current_mode ARG[0]
   -> String         -- rgb0_current ARG[1]
   -> String         -- rgb1_current ARG[2]
@@ -538,8 +538,8 @@ import Data.String.Interpolate.Util (unindent)
   ]
   |]) #-}
 
-{-# NOINLINE rgbDriverPrim #-}
-rgbDriverPrim
+{-# NOINLINE rgbPrim #-}
+rgbPrim
   :: String
   -> String
   -> String
@@ -548,13 +548,13 @@ rgbDriverPrim
   -> Signal dom Bit
   -> Signal dom Bit
   -> Signal dom (Bit, Bit, Bit)
-rgbDriverPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
+rgbPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
 
 type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
 
-rgbDriver :: Signal dom Rgb -> Signal dom Rgb
-rgbDriver rgb = let (r, g, b) = unbundle rgb
-                in rgbDriverPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
+rgb :: Signal dom Rgb -> Signal dom Rgb
+rgb rgbPWM = let (r, g, b) = unbundle rgbPWM
+             in rgbPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
 ```
 
 To end this part, we clean and rebuild the library. You should not see any errors.
@@ -570,10 +570,10 @@ exist.
 Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
 [1 of 3] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
-[2 of 3] Compiling Veldt.Ice40.RgbDriver ( Veldt/Ice40/RgbDriver.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Ice40/RgbDriver.o )
+[2 of 3] Compiling Veldt.Ice40.Rgb ( Veldt/Ice40/Rgb.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Ice40/Rgb.o )
 [3 of 3] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
 ```
-You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/RgbDriver.hs). We now move onto creating a blinker.
+You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We now move onto creating a blinker.
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal.
 ```console
@@ -626,7 +626,7 @@ library
 Additionally, we tell cabal where to find our `veldt` library with a `cabal.project` file.
 ```
 packages: ./blinker.cabal,
-          ../veldt/veldt.cabal
+          ../../veldt/veldt.cabal
 ```
 Note, you may need to change the filepath to `veldt.cabal` depending on your file locations.
 With that out of the way, let's create a `Blinker.hs` file and open the file with a text editor.
@@ -642,9 +642,9 @@ import Clash.Prelude
 import Clash.Annotations.TH
 import Control.Monad.RWS
 import Control.Lens
-import qualified Veldt.Counter         as C
-import qualified Veldt.PWM             as P
-import qualified Veldt.Ice40.RgbDriver as R
+import qualified Veldt.Counter   as C
+import qualified Veldt.PWM       as P
+import qualified Veldt.Ice40.Rgb as R
 ```
 We find that using qualified imports helps to quickly determine which modules functions and types originate from when reading source code or looking up type signatures. `Clash.Annotations.TH` includes functions to name the top entity module which is useful for synthesis.
 
@@ -684,6 +684,28 @@ toPWM Green = (0,    0xFF, 0   )
 toPWM Blue  = (0,    0,    0xFF)
 toPWM White = (0xFF, 0xFF, 0xFF)
 ```
+The next function `blinkerM` is the core of our demo. Here is the implementation.
+```haskell
+blinkerM :: RWS r () Blinker R.Rgb
+blinkerM = do
+  r <- zoom redPWM   P.pwm
+  g <- zoom greenPWM P.pwm
+  b <- zoom bluePWM  P.pwm
+  timerDone <- zoom timer $ C.gets isTwoSeconds
+  zoom timer $ C.incrementUnless isTwoSeconds
+  when timerDone $ do
+    c' <- color <%= nextColor
+    let (redDuty', greenDuty', blueDuty') = toPWM c'
+    zoom redPWM   $ P.setDuty redDuty'
+    zoom greenPWM $ P.setDuty greenDuty'
+    zoom bluePWM  $ P.setDuty blueDuty'
+  return (r, g, b)
+  where
+    isTwoSeconds = (== 24000000)
+    nextColor White = Off
+    nextColor c     = succ c
+```
+First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals 24,000,000 and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, 24,000,000 is equivalent to two seconds. Having checked the timer, we use `incrementUnless`. This checks if the timer equals 24,000,000 in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. Finally we `return` the PWM outputs that were bound at the start of `blinkerM`.
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
