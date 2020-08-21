@@ -1,6 +1,6 @@
-module Veldt.Ice40.RgbDriver
+module Veldt.Ice40.Rgb
   ( Rgb
-  , rgbDriver
+  , rgb
   ) where
 
 import Clash.Prelude
@@ -8,12 +8,12 @@ import Clash.Annotations.Primitive
 import Data.String.Interpolate (i)
 import Data.String.Interpolate.Util (unindent)
 
-{-# ANN rgbDriverPrim (InlinePrimitive [Verilog] $ unindent [i|
+{-# ANN rgbPrim (InlinePrimitive [Verilog] $ unindent [i|
   [ { "BlackBox" :
-      { "name" : "Veldt.Ice40.RgbDriver.rgbDriverPrim"
+      { "name" : "Veldt.Ice40.Rgb.rgbPrim"
       , "kind" : "Declaration"
       , "type" :
-  "rgbDriverPrim
+  "rgbPrim
   :: String         -- current_mode ARG[0]
   -> String         -- rgb0_current ARG[1]
   -> String         -- rgb1_current ARG[2]
@@ -51,8 +51,8 @@ import Data.String.Interpolate.Util (unindent)
   ]
   |]) #-}
 
-{-# NOINLINE rgbDriverPrim #-}
-rgbDriverPrim
+{-# NOINLINE rgbPrim #-}
+rgbPrim
   :: String
   -> String
   -> String
@@ -61,10 +61,10 @@ rgbDriverPrim
   -> Signal dom Bit
   -> Signal dom Bit
   -> Signal dom (Bit, Bit, Bit)
-rgbDriverPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
+rgbPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
 
 type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
 
-rgbDriver :: Signal dom Rgb -> Signal dom Rgb
-rgbDriver rgb = let (r, g, b) = unbundle rgb
-                in rgbDriverPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
+rgb :: Signal dom Rgb -> Signal dom Rgb
+rgb rgbPWM = let (r, g, b) = unbundle rgbPWM
+             in rgbPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
