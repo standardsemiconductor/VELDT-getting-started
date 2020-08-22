@@ -705,7 +705,17 @@ blinkerM = do
     nextColor White = Off
     nextColor c     = succ c
 ```
-First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals 24,000,000 and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, 24,000,000 is equivalent to two seconds. Having checked the timer, we use `incrementUnless`. This checks if the timer equals 24,000,000 in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. Finally we `return` the PWM outputs that were bound at the start of `blinkerM`.
+First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals 24,000,000 and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, counting to 24,000,000 takes two seconds. Having checked the timer, we use `incrementUnless`. Remember, this checks if the timer equals 24,000,000 in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. To update the color we use the `<%=` operator from the lens library. It modifies the value in focus and returns the new value which we bind to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally we `return` the PWM outputs that were bound at the start of `blinkerM`. The `nextColor` function takes advantage of the fact that `Color` derives `Enum`, we just need to manually map `White` to `Off` to avoid going out of bounds.
+
+Now we need to run `blinkerM` as a mealy machine. This requires the use of `mealy` from the Clash Prelude. `mealy` takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
+```haskell
+blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
+blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
+  where
+    blinkerMealy s i = let (a, s', _) = runRWS blinkerM i s
+		       in (s', a)
+```
+First, we transform our `blinkerM :: RWS r () Blinker R.Rgb` into a transfer function `blinkerMealy` with type `Blinker -> () -> (Blinker, R.Rgb)` using `runRWS`. We use the unit `()` to describe no input. Then we use `mkBlinker` to construct the initial state. Finally, we apply a unit signal as input and apply the mealy output directly to the RGB Driver IP.
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)

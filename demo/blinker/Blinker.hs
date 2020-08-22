@@ -60,7 +60,7 @@ blinkerM = do
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
   where
-    blinkerMealy s i = let (a, s', _) = runRWS blinkerM i s
+    blinkerMealy s i = let (a, s', ()) = runRWS blinkerM i s
                        in (s', a)
 
 {-# NOINLINE topEntity #-}
