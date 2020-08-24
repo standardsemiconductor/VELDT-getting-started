@@ -716,6 +716,113 @@ blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
 		       in (s', a)
 ```
 First, we transform our `blinkerM :: RWS r () Blinker R.Rgb` into a transfer function `blinkerMealy` with type `Blinker -> () -> (Blinker, R.Rgb)` using `runRWS`. We use the unit `()` to describe no input. Then we use `mkBlinker` to construct the initial state. Finally, we apply a unit signal as input and apply the mealy output directly to the RGB Driver IP.
+
+Finally, we define the `topEntity` function which takes a clock as input and outputs a `Signal` of RGB LED driver.
+```haskell
+{-# NOINLINE topEntity #-}
+topEntity
+  :: "clk" ::: Clock XilinxSystem
+  -> "led" ::: Signal XilinxSystem R.Rgb
+topEntity clk = withClockResetEnable clk rst enableGen blinker
+  where
+    rst = unsafeFromHighPolarity $ pure False
+makeTopEntityWithName 'topEntity "Blinker"
+```
+First, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and  clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal which is always inactive by inputting `False` to `unsafeFromHighPolarity`. `blinker` has a `HiddenClockResetEnable` constraint so we use `withClockResetEnable` to expose them and provie clock, reset, and enable signals. We use the template haskell function `makeTopEntityWithName` which will generate Synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `.pcf`, or pin constraint file.
+
+Here is the complete `Blinker.hs` source code:
+```haskell
+module Blinker where
+
+import Clash.Prelude
+import Clash.Annotations.TH
+import Control.Monad.RWS
+import Control.Lens
+import qualified Veldt.Counter   as C
+import qualified Veldt.PWM       as P
+import qualified Veldt.Ice40.Rgb as R
+
+type Byte = BitVector 8
+
+data Color = Off | Red | Green | Blue | White
+  deriving (NFDataX, Generic, Enum)
+
+data Blinker = Blinker
+  { _color    :: Color
+  , _redPWM   :: P.PWM Byte
+  , _greenPWM :: P.PWM Byte
+  , _bluePWM  :: P.PWM Byte
+  , _timer    :: C.Counter (Unsigned 25)
+  } deriving (NFDataX, Generic)
+makeLenses ''Blinker
+
+mkBlinker :: Blinker
+mkBlinker = Blinker
+  { _color    = Off
+  , _redPWM   = P.mkPWM 0
+  , _greenPWM = P.mkPWM 0
+  , _bluePWM  = P.mkPWM 0
+  , _timer    = C.mkCounter 0
+  }
+
+toPWM :: Color -> (Byte, Byte, Byte)
+toPWM Off   = (0,    0,    0   )
+toPWM Red   = (0xFF, 0,    0   )
+toPWM Green = (0,    0xFF, 0   )
+toPWM Blue  = (0,    0,    0xFF)
+toPWM White = (0xFF, 0xFF, 0xFF)
+
+blinkerM :: RWS r () Blinker R.Rgb
+blinkerM = do
+  r <- zoom redPWM   P.pwm
+  g <- zoom greenPWM P.pwm
+  b <- zoom bluePWM  P.pwm
+  timerDone <- zoom timer $ C.gets isTwoSeconds
+  zoom timer $ C.incrementUnless isTwoSeconds
+  when timerDone $ do
+    c' <- color <%= nextColor
+    let (redDuty', greenDuty', blueDuty') = toPWM c'
+    zoom redPWM   $ P.setDuty redDuty'
+    zoom greenPWM $ P.setDuty greenDuty'
+    zoom bluePWM  $ P.setDuty blueDuty'
+  return (r, g, b)
+  where
+    isTwoSeconds = (== 24000000)
+    nextColor White = Off
+    nextColor c     = succ c
+
+blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
+blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
+  where
+    blinkerMealy s i = let (a, s', ()) = runRWS blinkerM i s
+                       in (s', a)
+
+{-# NOINLINE topEntity #-}
+topEntity
+  :: "clk" ::: Clock XilinxSystem
+  -> "led" ::: Signal XilinxSystem R.Rgb
+topEntity clk = withClockResetEnable clk rst enableGen blinker
+  where
+    rst = unsafeFromHighPolarity $ pure False
+makeTopEntityWithName 'topEntity "Blinker"
+```
+
+We need a `.pcf` file to connect the FPGA ports to our design ports. Keep in mind that `Rgb` is annotated with `red`, `green`, and `blue`. Thus, our only input is `clk`, and our three outputs are `led_red`, `led_green`, `led_blue`. Here is the [Blinker.pcf](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.pcf).
+```
+set_io clk 35 # iot_46b_g0 12Mhz Xtal
+
+set_io led_blue  41 # rgb2 blue
+set_io led_green 40 # rgb1 green
+set_io led_red   39 # rgb0 red
+```
+The `#` indicates anything after it is a comment. We provide a [default pin constraint file] with helpful comments in the [demo] directory; just remove the first `#` and change the pin name to suit your design.
+
+Finally, we provide a [Makefile] with a [generic version] in the [demo] directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans all build files.
+
+To end this section, we build, synthesize, place-and-route, pack, and program VELDT. There should be no errors.
+```console
+foo@bar:~/VELDT-getting-started/demo/blinker$ make clean && make prog
+```
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
