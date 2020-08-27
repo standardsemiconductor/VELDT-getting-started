@@ -28,8 +28,8 @@ In this section we start by building a counter. Then using the counter, construc
 ### [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 We begin by creating a haskell library:
 ```console
-foo@bar:~$ mkdir veldt && cd veldt
-foo@bar:~/veldt$ cabal init
+foo@bar:~/VELDT-getting-started$ mkdir veldt && cd veldt
+foo@bar:~/VELDT-getting-started/veldt$ cabal init
 Guessing dependencies...
 
 Generating LICENSE...
@@ -44,7 +44,7 @@ You may want to edit the .cabal file and add a Description field.
 ```
 We can remove the `Main.hs` file:
 ```console
-foo@bar:~/veldt$ rm Main.hs
+foo@bar:~/VELDT-getting-started/veldt$ rm Main.hs
 ```
 Next, edit the `veldt.cabal`. We remove the executable section and add our own library. We leave everything else untouched. You may customize attributes like `synopsys` but it is not necessary. Your `veldt.cabal` file should look similar:
 ```
@@ -95,8 +95,8 @@ We won't go through everything about this cabal file, but here are the highlight
 
 Create a directory `Veldt` with a file `Counter.hs`.
 ```console
-foo@bar:~/veldt$ mkdir Veldt && cd Veldt
-foo@bar:~/veldt/Veldt$ touch Counter.hs
+foo@bar:~/VELDT-getting-started/veldt$ mkdir Veldt && cd Veldt
+foo@bar:~/VELDT-getting-started/veldt/Veldt$ touch Counter.hs
 ```
 
 Open `Counter.hs` in your favorite editor. Lets name the module, list the exports and import some useful packages:
@@ -253,8 +253,8 @@ incrementUnless p = incrementWhen (not . p)
 ```
 To end this part, we clean and rebuild the library. You should not see any errors.
 ```console
-foo@bar:~/veldt$ cabal clean
-foo@bar:~/veldt$ cabal build
+foo@bar:~/VELDT-getting-started/veldt$ cabal clean
+foo@bar:~/VELDT-getting-started/veldt$ cabal build
 Resolving dependencies...
 Build profile: -w ghc-8.8.3 -O1
 In order, the following will be built (use -v for more details):
@@ -264,13 +264,13 @@ Warning: The 'license-file' field refers to the file 'LICENSE' which does not
 exist.
 Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
-[1 of 1] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o ) [flags changed]
+[1 of 1] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o ) [flags changed]
 ```
 You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter to create a PWM.
 ### [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Pulse Width Modulation or PWM is used to drive our LED. We use a technique called [time proportioning](https://en.wikipedia.org/wiki/Pulse-width_modulation#Time_proportioning) to generate the PWM signal with our counter. To begin let's create a `PWM.hs` file in the `Veldt` directory.
 ```console
-foo@bar:~/veldt/Veldt$ touch PWM.hs
+foo@bar:~/VELDT-getting-started/veldt/Veldt$ touch PWM.hs
 ```
 We also need to expose the PWM module with cabal by editing the `exposed-modules` section of `veldt.cabal` to include `Veldt.PWM`.
 ```
@@ -369,7 +369,7 @@ pwm = do
 ```
 To end this part, we clean and rebuild the library. You should not see any errors.
 ```console
-foo@bar:~/veldt$ cabal clean && cabal build
+foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
 Resolving dependencies...
 Build profile: -w ghc-8.8.3 -O1
 In order, the following will be built (use -v for more details):
@@ -379,14 +379,14 @@ Warning: The 'license-file' field refers to the file 'LICENSE' which does not
 exist.
 Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
-[1 of 2] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
-[2 of 2] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
+[1 of 2] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
+[2 of 2] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
 ```
 You can find the full PWM source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP.
 ### [Drive: RGB Primitive](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 We need one more component before starting our demo. This component is a RGB LED Driver; it takes 3 PWM signals (R, G, B) to drive the LED. Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP (SB_RGBA_DRV) from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `Rgb.hs` file which will be our RGB Driver primitive.
 ```console
-foo@bar:~/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/Rgb.hs
+foo@bar:~/VELDT-getting-started/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/Rgb.hs
 ```
 Next add the `Veldt.Ice40.Rgb` to our `veldt.cabal` `exposed-modules` list.
 ```
@@ -559,7 +559,7 @@ rgb rgbPWM = let (r, g, b) = unbundle rgbPWM
 
 To end this part, we clean and rebuild the library. You should not see any errors.
 ```console
-foo@bar:~/veldt$ cabal clean && cabal build
+foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
 Resolving dependencies...
 Build profile: -w ghc-8.8.3 -O1
 In order, the following will be built (use -v for more details):
@@ -577,7 +577,7 @@ You can find the full RGB Driver source code [here](https://github.com/standards
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal.
 ```console
-foo@bar:~$ mkdir -p demo/blinker && cd demo/blinker && cabal init
+foo@bar:~/VELDT-getting-started$ mkdir -p demo/blinker && cd demo/blinker && cabal init
 ```
 The `blinker.cabal` file will look similar to `veldt.cabal`, except our top-level module `Blinker` is the only exposed module, and we add `clash-ghc` and `veldt` to our `build-depends` list. Here is the complete `blinker.cabal`.
 ```
