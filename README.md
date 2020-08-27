@@ -817,7 +817,41 @@ set_io led_red   39 # rgb0 red
 ```
 The `#` indicates anything after it is a comment. We provide a [default pin constraint file] with helpful comments in the [demo] directory; just remove the first `#` and change the pin name to suit your design.
 
-Finally, we provide a [Makefile] with a [generic version] in the [demo] directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans all build files.
+Finally, we provide a [Makefile] with a [generic version] in the [demo] directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans all build files. Information about automatic variables such as `$<` and `$@` can be found [here](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html). Be sure `TOP` is assigned the same value as provided to `makeTopEntityWithName`.
+```make
+TOP := Blinker
+
+all: $(TOP).bin
+
+$(TOP).bin: $(TOP).asc
+        icepack $< $@
+
+$(TOP).asc: $(TOP).json $(TOP).pcf
+        nextpnr-ice40 --up5k --package sg48 --pcf $(TOP).pcf --asc $@ --json $<
+
+$(TOP).json: $(TOP).hs
+        cabal build $<
+        cabal exec -- clash --verilog $<
+        yosys -q -p "synth_ice40 -top $(TOP) -json $@ -dsp -abc2" verilog/$(TOP)/$(TOP)/*.v
+
+prog: $(TOP).bin
+        iceprog $<
+
+build: $(TOP).hs
+        cabal build $<
+
+clean:
+        rm -rf verilog/
+        rm -f $(TOP).json
+        rm -f $(TOP).asc
+        rm -f $(TOP).bin
+        rm -f *~
+        rm -f *.hi
+        rm -f *.o
+        cabal clean
+
+.PHONY: all clean prog build
+```
 
 To end this section, we build, synthesize, place-and-route, pack, and program VELDT. There should be no errors.
 ```console
