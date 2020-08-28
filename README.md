@@ -569,9 +569,9 @@ Warning: The 'license-file' field refers to the file 'LICENSE' which does not
 exist.
 Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
-[1 of 3] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
-[2 of 3] Compiling Veldt.Ice40.Rgb ( Veldt/Ice40/Rgb.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Ice40/Rgb.o )
-[3 of 3] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
+[1 of 3] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
+[2 of 3] Compiling Veldt.Ice40.Rgb ( Veldt/Ice40/Rgb.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Ice40/Rgb.o )
+[3 of 3] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
 ```
 You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We now move onto creating a blinker.
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
@@ -728,7 +728,7 @@ topEntity clk = withClockResetEnable clk rst enableGen blinker
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Blinker"
 ```
-First, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and  clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal which is always inactive by inputting `False` to `unsafeFromHighPolarity`. `blinker` has a `HiddenClockResetEnable` constraint so we use `withClockResetEnable` to expose them and provie clock, reset, and enable signals. We use the template haskell function `makeTopEntityWithName` which will generate Synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `.pcf`, or pin constraint file.
+First, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal which is always inactive by inputting `False` to `unsafeFromHighPolarity`. `blinker` has a `HiddenClockResetEnable` constraint so we use `withClockResetEnable` to expose them and provie clock, reset, and enable signals. We use the template haskell function `makeTopEntityWithName` which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `.pcf`, or pin constraint file.
 
 Here is the complete `Blinker.hs` source code:
 ```haskell
@@ -815,9 +815,9 @@ set_io led_blue  41 # rgb2 blue
 set_io led_green 40 # rgb1 green
 set_io led_red   39 # rgb0 red
 ```
-The `#` indicates anything after it is a comment. We provide a [default pin constraint file] with helpful comments in the [demo] directory; just remove the first `#` and change the pin name to suit your design.
+The `#` indicates anything after it is a comment. We provide a [default pin constraint file] with helpful comments in the [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directory; just remove the first `#` and change the pin name to suit your design.
 
-Finally, we provide a [Makefile] with a [generic version] in the [demo] directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans all build files. Information about automatic variables such as `$<` and `$@` can be found [here](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html). Be sure `TOP` is assigned the same value as provided to `makeTopEntityWithName`.
+Finally, we provide a [Makefile](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Makefile) with a [generic version] in the [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans all build files. Information about automatic variables such as `$<` and `$@` can be found [here](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html). Be sure `TOP` is assigned the same value as provided to `makeTopEntityWithName`.
 ```make
 TOP := Blinker
 
