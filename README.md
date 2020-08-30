@@ -8,6 +8,9 @@
    3. [Drive: RGB Primitive](https://github.com/standardsemiconductor/VELDT-getting-started#drive-rgb-primitive)
    4. [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#fiat-lux-blinker)
 3. [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar)
+   1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
+   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art)
+   3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo)
 4. [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-pride)
 5. [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#section-5-where-lions-roam)
    
@@ -99,7 +102,7 @@ foo@bar:~/VELDT-getting-started/veldt$ mkdir Veldt && cd Veldt
 foo@bar:~/VELDT-getting-started/veldt/Veldt$ touch Counter.hs
 ```
 
-Open `Counter.hs` in your favorite editor. Lets name the module, list the exports and import some useful packages:
+Open `Counter.hs` in your favorite editor. Let's name the module, list the exports and import some useful packages:
 ```haskell
 module Veldt.Counter
   ( Counter
@@ -853,10 +856,32 @@ clean:
 .PHONY: all clean prog build
 ```
 
-To end this section, we build, synthesize, place-and-route, pack, and program VELDT. There should be no errors.
+To end this section, we build, synthesize, place-and-route, pack, and program VELDT. There should be no build errors. Verify your device utilisation looks similar, including usage of SB_RGBA_DRV. Before programming, make sure VELDT is connected to your computer, the power switch is ON, and the mode switch is set to FLASH. After programming, make sure the LED blinks with the correct color order with the intended 2 second period. If the CDONE LED is not illuminated blue, try pressing the reset button and/or toggling the power switch. If you have any issues, questions, or suggestions please open a public issue in this repository or contact us privately at standard.semiconductor@gmail.com.
 ```console
 foo@bar:~/VELDT-getting-started/demo/blinker$ make clean && make prog
+.....
+Info: Device utilisation:
+Info: 	         ICESTORM_LC:   198/ 5280     3%
+Info: 	        ICESTORM_RAM:     0/   30     0%
+Info: 	               SB_IO:     1/   96     1%
+Info: 	               SB_GB:     3/    8    37%
+Info: 	        ICESTORM_PLL:     0/    1     0%
+Info: 	         SB_WARMBOOT:     0/    1     0%
+Info: 	        ICESTORM_DSP:     0/    8     0%
+Info: 	      ICESTORM_HFOSC:     0/    1     0%
+Info: 	      ICESTORM_LFOSC:     0/    1     0%
+Info: 	              SB_I2C:     0/    2     0%
+Info: 	              SB_SPI:     0/    2     0%
+Info: 	              IO_I3C:     0/    2     0%
+Info: 	         SB_LEDDA_IP:     0/    1     0%
+Info: 	         SB_RGBA_DRV:     1/    1   100%
+Info: 	      ICESTORM_SPRAM:     0/    4     0%
+.....
 ```
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART. Equipped with our UART, we create a demo which echoes its input.
+### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [Roar: Echo]
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
