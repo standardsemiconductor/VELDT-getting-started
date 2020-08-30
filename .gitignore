@@ -1,2 +1,8 @@
 *~
 *dist-newstyle
+*.asc
+*.bin
+*.hi
+*.json
+*.o
+demo/*/verilog/
