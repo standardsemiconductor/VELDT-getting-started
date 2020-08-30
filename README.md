@@ -881,6 +881,56 @@ Info: 	      ICESTORM_SPRAM:     0/    4     0%
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART. Equipped with our UART, we create a demo which echoes its input.
 ### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+Let's begin by creating a file `Serial.hs` in the `Veldt` directory.
+```console
+foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Serial.hs
+```
+Now expose the module with `veldt.cabal`. Your `exposed-modules` section should look similar.
+```
+.....
+exposed-modules: Veldt.Counter,
+		 Veldt.PWM,
+		 Veldt.Serial,
+		 Veldt.Ice40.Rgb
+.....
+```
+Let's begin editing the `Serial.hs` file. Fundamentally, we represent serializers and deserializers with a counter and a `Vec` from [Clash.Sized.Vector](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Sized-Vector.html). This means we will be able to serialize or deserialize in two directions say left or right e.g. for a deserializer we could add elements at the beginning (left) or end (right) of the `Vec`. Additionally, we use a flag to indicate whether a deserializer is full or a serializer is empty.
+```haskell
+module Veldt.Serial
+  ( Direction(..)
+  -- Deserializer                                                                             
+  , Deserializer
+  , mkDeserializer
+  , isFull
+  , deserialize
+  , get
+  , clear
+  -- Serializer
+  , Serializer
+  , mkSerializer
+  , isEmpty
+  , serialize	
+  , peek
+  , give
+  ) where
+
+import Clash.Prelude
+import Control.Monad.RWS (RWST)
+import Control.Lens hiding (Index)
+import qualified Veldt.Counter as C
+```
+With a deserializer we are able to:
+  1. construct it with `mkDeserializer`
+  2. check if it is full
+  3. `deserialize` data, adding it to either the front or back of the vector depending on the direction and incrementing the counter.
+  4. `get` the `Vec` of elements of the deserializer
+  5. `clear` the full flag and reset the counter
+Similarly with a serializer we are able to:
+  1. construct it with `mkSerializer`
+  2. check if it is empty
+  3. `serialize` data, shifting either left or right depending on the direction and incrementing the counter
+  4. `peek` at the element to serialize
+  5. `give` new data to the serializer and reset the counter
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)

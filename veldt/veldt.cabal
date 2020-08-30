@@ -19,6 +19,7 @@ extra-source-files:  CHANGELOG.md
 library
         exposed-modules: Veldt.Counter,
                          Veldt.PWM,
+                         Veldt.Serial,
                          Veldt.Ice40.Rgb
         build-depends: clash-prelude,
                        mtl,
