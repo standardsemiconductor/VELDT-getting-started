@@ -68,8 +68,8 @@ data Serializer n a = Serializer
   } deriving (NFDataX, Generic)
 makeLenses ''Serializer
 
-mkSerializer :: KnownNat n => Direction -> Vec n a -> Serializer n a
-mkSerializer d v = Serializer v False (C.mkCounter 0) d
+mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
+mkSerializer a = Serializer (repeat a) False (C.mkCounter 0) 
 
 serialize :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer n a) m ()
 serialize = do
