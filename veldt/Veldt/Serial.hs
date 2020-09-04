@@ -3,20 +3,20 @@ module Veldt.Serial
   -- Deserializer
   , Deserializer
   , mkDeserializer
-  , isFull
+  , full
   , deserialize
   , get
   , clear
   -- Serializer
   , Serializer
   , mkSerializer
-  , isEmpty
+  , empty
   , serialize
   , peek
   , give
   ) where
 
-import Clash.Prelude
+import Clash.Prelude hiding (empty)
 import Control.Monad.RWS (RWST)
 import Control.Lens hiding (Index)
 import qualified Veldt.Counter as C
@@ -35,11 +35,11 @@ data Deserializer n a = Deserializer
   } deriving (NFDataX, Generic)
 makeLenses ''Deserializer
 
-mkDeserializer :: KnownNat n => Direction -> Vec n a -> Deserializer n a
-mkDeserializer dir buf = Deserializer buf False (C.mkCounter 0) dir
+mkDeserializer :: KnownNat n => a -> Direction -> Deserializer n a
+mkDeserializer a = Deserializer (repeat a) False (C.mkCounter 0)
 
-isFull :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m Bool
-isFull = use dFull
+full :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m Bool
+full = use dFull
 
 deserialize :: (Monoid w, Monad m, KnownNat n) => a -> RWST r w (Deserializer n a) m ()
 deserialize d = do
@@ -90,5 +90,5 @@ give v = do
   sEmpty .= False
   zoom sCtr $ C.set 0
 
-isEmpty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
-isEmpty = use sEmpty
+empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
+empty = use sEmpty

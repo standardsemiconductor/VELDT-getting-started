@@ -901,20 +901,20 @@ module Veldt.Serial
   -- Deserializer                                                                             
   , Deserializer
   , mkDeserializer
-  , isFull
+  , full
   , deserialize
   , get
   , clear
   -- Serializer
   , Serializer
   , mkSerializer
-  , isEmpty
+  , empty
   , serialize	
   , peek
   , give
   ) where
 
-import Clash.Prelude
+import Clash.Prelude hiding (empty)
 import Control.Monad.RWS (RWST)
 import Control.Lens hiding (Index)
 import qualified Veldt.Counter as C
@@ -922,7 +922,7 @@ import qualified Veldt.Counter as C
 With a deserializer we are able to:
   1. construct it with `mkDeserializer`
   2. check if it is full
-  3. `deserialize` data, adding it to either the front or back of the vector depending on the direction and incrementing the counter.
+  3. `deserialize` data, shifting it onto either the front or back of the vector depending on the direction and incrementing the counter.
   4. `get` the `Vec` of elements of the deserializer
   5. `clear` the full flag and reset the counter
 
@@ -932,6 +932,33 @@ Similarly with a serializer we are able to:
   3. `serialize` data, shifting either left or right depending on the direction and incrementing the counter
   4. `peek` at the element to serialize
   5. `give` new data to the serializer and reset the counter
+
+Before we dive into the serializer and deserializer, let's first define a `Direction` type with two inhabitants `L` and `R`, representing left and right respectively.
+```haskell
+data Direction = L | R
+  deriving (NFDataX, Generic)
+```
+
+First we start with defining a deserializer state parametrizable by its size and the type it can "buffer" along with a smart constructor.
+```haskell
+data Deserializer n a = Deserializer
+  { _dBuf  :: Vec n a
+  , _dFull :: Bool
+  , _dCtr  :: C.Counter (Index n)
+  , _dDir  :: Direction
+  } deriving (NFDataX, Generic)
+makeLenses ''Deserializer
+
+mkDeserializer :: KnownNat n => a -> Direction -> Deserializer n a
+mkDeserializer a = Deserializer (repeat a) False (C.mkCounter 0)
+```
+The `Deserializer` has four components:
+  1. a buffer `_dBuf` which is a `Vec` to hold the data as it is deserialized
+  2. a full flag `_dFull` which will be set when the deserializer is full
+  3. a counter `_dCtr` with the same "size" as `_dBuf`, which keeps track of how much data has been deserialized; when the counter is `maxBound` the deserializer is flagged as full.
+  4. a `Direction` `_dDir` which indicates whether data is shifted-in to the front or back of `_dBuf`.
+
+To construct a deserializer we need to specify a default value to initially populate `_dBuf` and a `Direction`. Initially, the full flag is set to `False` and the counter is `0`.
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
