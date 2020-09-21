@@ -959,6 +959,29 @@ The `Deserializer` has four components:
   4. a `Direction` `_dDir` which indicates whether data is shifted-in to the front or back of `_dBuf`.
 
 To construct a deserializer we need to specify a default value to initially populate `_dBuf` and a `Direction`. Initially, the full flag is set to `False` and the counter is `0`.
+
+Let's implement the deserializer interface.
+```haskell
+full :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m Bool
+full = use dFull
+
+deserialize :: (Monoid w, Monad m, KnownNat n) => a -> RWST r w (Deserializer n a) m ()
+deserialize d = do
+  use dDir >>= \case
+    R -> dBuf %= (<<+ d)
+    L -> dBuf %= (d +>>)
+  dFull <~ zoom dCtr (C.gets (== maxBound))
+  zoom dCtr C.increment
+    
+get :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m (Vec n a)
+get = use dBuf
+
+clear :: (Monoid w, Monad m, KnownNat n) => RWST r w (Deserializer n a) m ()
+clear = do
+  dFull .= False
+  zoom dCtr $ C.set 0
+```
+The `full` function simply returns the `dFull` value of the current state; `True` if the deserializer is full or `False` otherwise. Likewise, the `get` function returns the `dBuf` vector of the current state and the `clear` function sets `dFull` to `False` (meaning empty) and resets the `dCtr` counter to 0. The most important function `deserialize` takes a value, then adds it to either the head or tail of the `dBuf` vector. If the value of `dCtr` is equal to its maximum bound then set `dFull` to `True`, otherwise `False`. Finally, increment `dCtr`; remember `dCtr` will roll over to `0` if equal to max bound.
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
