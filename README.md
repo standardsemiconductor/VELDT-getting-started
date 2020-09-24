@@ -1024,9 +1024,9 @@ give v = do
 empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
 empty = use sEmpty
 ```
-`empty` is similar to `full`, in that we just return the flag. `give` first sets the buffer to the input, then sets the empty flag to false (meaning the serializer is full) and finally we reset the counter to 0. `peek` returns either the `head` or `last` element of the buffer, depending on the serializer direction. This is useful because sometimes we just want to know what value to serialize without actually changing the underlying buffer. If we do want to update the underlying buffer, use `serialize` which rotates the buffer depending on the direction, then updates the empty flag, and finally increments the counter. Note we use [`<~`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:-60--126-), which runs a monadic action and sets the target to its result.
+`empty` is similar to `full`, in that we just return the flag. `give` first sets the buffer to the function input `v`, then sets the empty flag to false (meaning the serializer is full) and finally we reset the counter to 0. `peek` returns either the `head` or `last` element of the buffer, depending on the serializer direction. This is useful because sometimes we just want to know what value to serialize without actually changing the underlying buffer. If we do want to update the underlying buffer, use `serialize` which rotates the buffer depending on the direction, then updates the empty flag, and finally increments the counter. Note we use [`<~`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:-60--126-), which runs a monadic action and sets the target to its result.
 
-Here is the complete [Serial.hs]() source code:
+Here is the complete [Serial.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Serial.hs) source code:
 ```haskell
 module Veldt.Serial
   ( Direction(..)
