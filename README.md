@@ -981,7 +981,50 @@ clear = do
   dFull .= False
   zoom dCtr $ C.set 0
 ```
-The `full` function simply returns the `dFull` value of the current state; `True` if the deserializer is full or `False` otherwise. Likewise, the `get` function returns the `dBuf` vector of the current state and the `clear` function sets `dFull` to `False` (meaning empty) and resets the `dCtr` counter to 0. The most important function `deserialize` takes a value, then adds it to either the head or tail of the `dBuf` vector. If the value of `dCtr` is equal to its maximum bound then set `dFull` to `True`, otherwise `False`. Finally, increment `dCtr`; remember `dCtr` will roll over to `0` if equal to max bound.
+The `full` function simply returns the `dFull` value of the current state; `True` if the deserializer is full or `False` otherwise. Likewise, the `get` function returns the `dBuf` vector of the current state and the `clear` function sets `dFull` to `False` (meaning empty) and resets the `dCtr` counter to 0.
+
+The most important function `deserialize` takes a value, then adds it to either the head or tail of the `dBuf` vector. If the value of `dCtr` is equal to its maximum bound then set `dFull` to `True`, otherwise `False`. Finally, increment `dCtr`; remember `dCtr` will roll over to `0` if equal to max bound.
+
+Next, we implement a serializer. Let's start with the state type and constructor.
+```haskell
+data Serializer n a = Serializer
+  { _sBuf   :: Vec n a
+  , _sEmpty :: Bool
+  , _sCtr   :: C.Counter (Index n)
+  , _sDir   :: Direction
+  } deriving (NFDataX, Generic)
+makeLenses ''Serializer
+
+mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
+mkSerializer a = Serializer (repeat a) False (C.mkCounter 0) 
+```
+The serializer state type is similar the deserializer except the `Bool` flag tracks when the serializer is empty (as opposed to full in the deserializer).
+
+Let's implement the serializer interface `serialize`, `peek`, `give`, and `empty`:
+```haskell
+serialize :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer n a) m ()
+serialize = do
+  use sDir >>= \case
+    R -> sBuf %= (`rotateRightS` d1)
+    L -> sBuf %= (`rotateLeftS`  d1)
+  sEmpty <~ zoom sCtr (C.gets (== maxBound))
+  zoom sCtr C.increment
+
+peek :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer (n + 1) a) m a
+peek = use sDir >>= \case
+  R -> uses sBuf last
+  L -> uses sBuf head
+
+give :: (Monoid w, Monad m, KnownNat n) => Vec n a -> RWST r w (Serializer n a) m ()
+give v = do
+  sBuf .= v
+  sEmpty .= False
+  zoom sCtr $ C.set 0
+
+empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
+empty = use sEmpty
+```
+
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
