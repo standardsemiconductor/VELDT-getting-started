@@ -1123,6 +1123,17 @@ give v = do
 empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
 empty = use sEmpty
 ```
+To end this part, clean and rebuild the library. There should not be any errors.
+```console
+foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
+...
+Building library for veldt-0.1.0.0..
+[1 of 4] Compiling Veldt.Counter ...
+[2 of 4] Compiling Veldt.Ice40.Rgb ...
+[3 of 4] Compiling Veldt.PWM ...
+[4 of 4] Compiling Veldt.Serial ...
+```
+In the next part we develop a UART.
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
