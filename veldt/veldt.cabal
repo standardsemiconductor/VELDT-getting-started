@@ -20,6 +20,7 @@ library
         exposed-modules: Veldt.Counter,
                          Veldt.PWM,
                          Veldt.Serial,
+                         Veldt.Uart,
                          Veldt.Ice40.Rgb
         build-depends: clash-prelude,
                        mtl,

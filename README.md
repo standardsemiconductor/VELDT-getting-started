@@ -1135,6 +1135,21 @@ Building library for veldt-0.1.0.0..
 ```
 In the next part we develop a UART.
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+Create a `Uart.hs` file.
+```console
+foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Uart.hs
+```
+Next add the `Veldt.Uart` module to our `veldt.cabal` `exposed-modules` list:
+```
+...
+exposed-modules: Veldt.Counter,
+                 Veldt.PWM,
+                 Veldt.Serial,
+                 Veldt.Uart,
+                 Veldt.Ice40.Rgb
+...
+```
+Now open `Uart.hs` with a text editor. We begin by naming the module and specifying the API.
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
