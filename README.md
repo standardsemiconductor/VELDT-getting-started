@@ -9,7 +9,7 @@
    4. [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#fiat-lux-blinker)
 3. [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar)
    1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
-   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art) Work In Progress
+   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art-work-in-progress) Work In Progress
    3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo) Coming Soon
 4. [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-pride) Coming Soon
 5. [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#section-5-where-lions-roam) Coming Soon
