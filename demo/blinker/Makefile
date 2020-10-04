@@ -27,6 +27,9 @@ clean:
 	rm -f *~
 	rm -f *.hi
 	rm -f *.o
+
+clean-all:
+	$(MAKE) clean
 	cabal clean
 
-.PHONY: all clean prog build
+.PHONY: all clean clean-all prog build

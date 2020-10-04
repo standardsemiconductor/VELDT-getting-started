@@ -548,18 +548,10 @@ rgb rgbPWM = let (r, g, b) = unbundle rgbPWM
 To end this part, we clean and rebuild the library. You should not see any errors.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
-Resolving dependencies...
-Build profile: -w ghc-8.8.3 -O1
-In order, the following will be built (use -v for more details):
- - veldt-0.1.0.0 (lib) (first run)
-Configuring library for veldt-0.1.0.0..
-Warning: The 'license-file' field refers to the file 'LICENSE' which does not
-exist.
-Preprocessing library for veldt-0.1.0.0..
 Building library for veldt-0.1.0.0..
-[1 of 3] Compiling Veldt.Counter    ( Veldt/Counter.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Counter.o )
-[2 of 3] Compiling Veldt.Ice40.Rgb ( Veldt/Ice40/Rgb.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/Ice40/Rgb.o )
-[3 of 3] Compiling Veldt.PWM        ( Veldt/PWM.hs, /home/foo/VELDT-getting-started/veldt/dist-newstyle/build/x86_64-linux/ghc-8.8.3/veldt-0.1.0.0/build/Veldt/PWM.o )
+[1 of 3] Compiling Veldt.Counter    ...
+[2 of 3] Compiling Veldt.Ice40.Rgb  ...
+[3 of 3] Compiling Veldt.PWM        ...
 ```
 You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We now move onto creating a blinker.
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
@@ -805,7 +797,7 @@ set_io led_red   39 # rgb0 red
 ```
 The `#` indicates anything after it is a comment. We provide a [default pin constraint file](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/pcf_generic.pcf) with helpful comments in the [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directory; just remove the first `#` and change the pin name to suit your design.
 
-Finally, we provide a [Makefile](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Makefile) along with a [generic version](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/Makefile_generic) in the [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans all build files. Information about automatic variables such as `$<` and `$@` can be found [here](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html). Be sure `TOP` is assigned the same value as provided to `makeTopEntityWithName`.
+Finally, we provide a [Makefile](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Makefile) along with a [generic version](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/Makefile_generic) in the [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans synthesis files while `make clean-all` will also clean the cabal build cache. Information about automatic variables such as `$<` and `$@` can be found [here](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html). Be sure `TOP` is assigned the same value as provided to `makeTopEntityWithName`.
 ```make
 TOP := Blinker
 
@@ -836,14 +828,17 @@ clean:
         rm -f *~
         rm -f *.hi
         rm -f *.o
+
+clean-all:
+	$(MAKE) clean
         cabal clean
 
-.PHONY: all clean prog build
+.PHONY: all clean clean-all prog build
 ```
 
 To end this section, we build, synthesize, place-and-route, pack, and program VELDT. There should be no build errors. Verify your device utilisation looks similar, including usage of SB_RGBA_DRV. Before programming, make sure VELDT is connected to your computer, the power switch is ON, and the mode switch is set to FLASH. After programming, make sure the LED blinks with the correct color order with the intended 2 second period. If the CDONE LED is not illuminated blue, try pressing the reset button and/or toggling the power switch. If you have any issues, questions, or suggestions please open a public issue in this repository or contact us privately at standard.semiconductor@gmail.com.
 ```console
-foo@bar:~/VELDT-getting-started/demo/blinker$ make clean && make prog
+foo@bar:~/VELDT-getting-started/demo/blinker$ make clean-all && make prog
 .....
 Info: Device utilisation:
 Info: 	         ICESTORM_LC:   198/ 5280     3%
