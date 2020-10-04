@@ -9,10 +9,10 @@
    4. [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#fiat-lux-blinker)
 3. [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar)
    1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
-   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art)
-   3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo)
-4. [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-pride)
-5. [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#section-5-where-lions-roam)
+   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art) Work In Progress
+   3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo) Coming Soon
+4. [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-pride) Coming Soon
+5. [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#section-5-where-lions-roam) Coming Soon
    
 **Clicking on any header within this document will return to Table of Contents** 
 
@@ -45,7 +45,7 @@ Generating veldt.cabal...
 Warning: no synopsis given. You should edit the .cabal file and add one.
 You may want to edit the .cabal file and add a Description field.
 ```
-We can remove the `Main.hs` file because we will not be creating just a library, not an executable:
+We can remove the `Main.hs` file because we will be creating a library, not an executable:
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ rm Main.hs
 ```
@@ -1119,7 +1119,7 @@ Building library for veldt-0.1.0.0..
 [4 of 4] Compiling Veldt.Serial ...
 ```
 In the next part we develop a UART.
-### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents) (Work In Progress)
 Create a `Uart.hs` file.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Uart.hs
@@ -1136,5 +1136,8 @@ exposed-modules: Veldt.Counter,
 ```
 Now open `Uart.hs` with a text editor. We begin by naming the module and specifying the API.
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+Coming Soon
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+Coming Soon
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+Coming Soon
