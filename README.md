@@ -1129,7 +1129,41 @@ exposed-modules: Veldt.Counter,
                  Veldt.Ice40.Rgb
 ...
 ```
-Now open `Uart.hs` with a text editor. We begin by naming the module and specifying the API.
+Now open `Uart.hs` with a text editor. We begin by naming the module, specifying the API, and importing dependencies.
+```haskell
+module Veldt.Uart
+  ( Rx(Rx)
+  , unRx
+  , Tx(Tx)
+  , unTx
+  , Byte
+  , Uart
+  , mkUart
+    -- API  
+  , read
+  , write
+  ) where
+
+import Clash.Prelude hiding (read)
+import Control.Monad.RWS
+import Control.Lens hiding ((:>))
+import qualified Veldt.Counter as C
+import qualified Veldt.Serial  as S
+```
+The API consists of `read` and `write` which will receive and transmit `Byte`s over the `Tx` and `Rx` wires. We also export the `Uart` type and its smart constructor `mkUart`. In order to implement the API we will need a `Counter` for the baud rate and a serializer and deserializer for receiving and transmitting bits, so we import the `Veldt.Counter` and `Veldt.Serial` modules. Let's define some types:
+```haskell
+type Byte = BitVector 8
+
+newtype Rx = Rx { unRx :: Bit }
+newtype Tx = Tx { unTx :: Bit }
+
+instance Semigroup Tx where
+  Tx tx <> Tx tx' = Tx $ tx .&. tx'
+
+instance Monoid Tx where
+  mempty = Tx 1
+```
+We want to be able to `read` and `write` bytes over UART so first we define a `Byte` type synonym to save keystrokes instead of having to say `BitVector 8`. Next we define the `Rx` and `Tx` newtypes which wrap `Bit`. Defining `Tx` as a newtype over `Bit` is important because we want to use it with the writer monad of `RWS`. The writer monad has a `Monoid` constraint so we make `Tx` an instance of `Semigroup` and `Monoid`. The `Tx` semigroup uses `.&.` (bitwise AND) as its product and `1` as its unit. We use `1` as the unit because when the UART is idle, it should drive the tx line high, indicating there is nothing to send.
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Coming Soon
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
