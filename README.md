@@ -72,6 +72,7 @@ extra-source-files:  CHANGELOG.md
 library
 	exposed-modules: Veldt.Counter
         build-depends: clash-prelude,
+		       clash-ghc,
         	       mtl,
                        lens,
 		       interpolate,
