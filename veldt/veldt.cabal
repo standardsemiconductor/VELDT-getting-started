@@ -23,6 +23,7 @@ library
                          Veldt.Uart,
                          Veldt.Ice40.Rgb
         build-depends: clash-prelude,
+                       clash-ghc,
                        mtl,
                        lens,
                        interpolate,
