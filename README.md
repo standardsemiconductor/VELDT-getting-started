@@ -1116,7 +1116,7 @@ Building library for veldt-0.1.0.0..
 ```
 In the next part we develop a UART.
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents) (Work In Progress)
-Create a `Uart.hs` file.
+Before diving into this section, it maybe be helpful to familiarize yourself with UART by browsing the [Wikipedia page](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter). Let's create a `Uart.hs` file.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Uart.hs
 ```
@@ -1164,7 +1164,34 @@ instance Semigroup Tx where
 instance Monoid Tx where
   mempty = Tx 1
 ```
-We want to be able to `read` and `write` bytes over UART so first we define a `Byte` type synonym to save keystrokes instead of having to say `BitVector 8`. Next we define the `Rx` and `Tx` newtypes which wrap `Bit`. Defining `Tx` as a newtype over `Bit` is important because we want to use it with the writer monad of `RWS`. The writer monad has a `Monoid` constraint so we make `Tx` an instance of `Semigroup` and `Monoid`. The `Tx` semigroup uses `.&.` (bitwise AND) as its product and `1` as its unit. We use `1` as the unit because when the UART is idle, it should drive the tx line high, indicating there is nothing to send.
+We want to be able to `read` and `write` bytes over UART so first we define a `Byte` type synonym to save keystrokes instead of having to say `BitVector 8`. Next we define the `Rx` and `Tx` newtypes which wrap `Bit`. Defining `Tx` as a newtype over `Bit` is important because we want to use it with the writer monad of `RWS`. The writer monad has a `Monoid` constraint so we make `Tx` an instance of `Semigroup` and `Monoid`. The `Tx` semigroup uses `.&.` (bitwise AND) as its product and `1` as its unit. We use `1` as the unit because when the UART is idle, it should drive the tx line high, indicating there is nothing to send. We now move onto creating a transmitter. Let's start by defining its types.
+```haskell
+data TxFsm = TxStart | TxSend
+  deriving (NFDataX, Generic)
+
+data Transmitter = Transmitter
+  { _txSer  :: S.Serializer 10 Bit
+  , _txBaud :: Unsigned 16
+  , _txCtr  :: C.Counter (Unsigned 16)
+  , _txFsm  :: TxFsm
+  }
+  deriving (NFDataX, Generic)
+makeLenses ''Transmitter
+
+mkTransmitter :: Unsigned 16 -> Transmitter
+mkTransmitter b = Transmitter
+  { _txSer  = S.mkSerializer 0 S.R
+  , _txBaud = b
+  , _txCtr  = C.mkCounter 0
+  , _txFsm  = TxStart
+  }
+```
+The transmission of a byte occurs over two states. We represent the states `TxStart` and `TxSend` as the `TxFsm` type. The `TxStart` state will setup the transmission then the `TxSend` state will serialize a frame. Finite state machines are very easy and expressive with Haskell and we use the pattern for both transmitting and receiving bytes. Now that we have our machine states, we can define the `Transmitter` state. It has four components:
+  1. a serializer `_txSer` which we use to transmit a frame one bit at a time
+  2. a baud rate `_txBaud` which determines how many clock cycles each bit requires for transmission.
+  3. a counter `_txCtr` which acts as the timer to count clock cycles for each bit.
+  4. a finite state machine `_txFsm` which indicates the state the transmitter is in currently; either `TxStart` or `TxSend.
+Let's also define a `Transmitter` smart constructor `mkTransmitter`. It will take a baud rate as input. Note, `_txSer` is a right serializer, `_txCtr` starts at zero, and the initial `_txFsm` state is `TxStart`.
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Coming Soon
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
