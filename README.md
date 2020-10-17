@@ -1191,6 +1191,7 @@ The transmission of a byte occurs over two states. We represent the states `TxSt
   2. a baud rate `_txBaud` which determines how many clock cycles each bit requires for transmission.
   3. a counter `_txCtr` which acts as the timer to count clock cycles for each bit.
   4. a finite state machine `_txFsm` which indicates the state the transmitter is in currently; either `TxStart` or `TxSend`.
+
 Let's also define a `Transmitter` smart constructor `mkTransmitter`. It will take a baud rate as input. Note, `_txSer` is a right serializer, `_txCtr` starts at zero, and the initial `_txFsm` state is `TxStart`.
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Coming Soon
