@@ -53,7 +53,7 @@ mkTransmitter b = Transmitter
 transmit :: Byte -> RWS r Tx Transmitter Bool
 transmit byte = use txFsm >>= \case
   TxStart -> do
-    zoom txSer $ S.give $ bv2v $ mkTxSer byte
+    zoom txSer $ S.give $ bv2v $ frame byte
     zoom txCtr $ C.set 0
     txFsm .= TxSend
     return False
@@ -70,8 +70,8 @@ transmit byte = use txFsm >>= \case
         return serEmpty
       else return False
       
-mkTxSer :: Byte -> BitVector 10
-mkTxSer b = (1 :: BitVector 1) ++# b ++# (0 :: BitVector 1)
+frame :: Byte -> BitVector 10
+frame b = (1 :: BitVector 1) ++# b ++# (0 :: BitVector 1)
 
 --------------
 -- Receiver --

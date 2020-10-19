@@ -1193,6 +1193,35 @@ The transmission of a byte occurs over two states. We represent the states `TxSt
   4. a finite state machine `_txFsm` which indicates the state the transmitter is in currently; either `TxStart` or `TxSend`.
 
 Let's also define a `Transmitter` smart constructor `mkTransmitter`. It will take a baud rate as input. Note, `_txSer` is a right serializer, `_txCtr` starts at zero, and the initial `_txFsm` state is `TxStart`.
+
+We now implement the `transmit` function:
+```haskell
+transmit :: Byte -> RWS r Tx Transmitter Bool
+transmit byte = use txFsm >>= \case
+  TxStart -> do
+    zoom txSer $ S.give $ bv2v $ frame byte
+    zoom txCtr $ C.set 0
+    txFsm .= TxSend
+    return False
+  TxSend -> do
+    zoom txSer S.peek >>= tell . Tx
+    baud <- use txBaud
+    ctrDone <- zoom txCtr $ C.gets (== baud)
+    zoom txCtr $ C.incrementUnless (== baud)
+    if ctrDone
+      then do
+        zoom txSer S.serialize
+        serEmpty <- zoom txSer S.empty
+        when serEmpty $ txFsm .= TxStart
+        return serEmpty
+      else return False
+      
+frame :: Byte -> BitVector 10
+frame b = (1 :: BitVector 1) ++# b ++# (0 :: BitVector 1)
+```
+First we do case analysis on `txFsm`.
+  1. If `txFsm` is `TxStart` we `frame` the input byte, transform it into a `Vec` of `Bit`s (note this reverses the bits), then `give` it to the serializer `_txSer`. We also set the counter `_txCtr` to zero, update `txFsm` to the `TxSend` state, and return `False` which indicates the transmit is in progress.
+  2. If `txFsm` is `TxSend`, first we `peek` at the current bit to serialize, wrap it in a `Tx` type, then pass it to `tell` which transmits the bit via the writer monad.
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Coming Soon
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
