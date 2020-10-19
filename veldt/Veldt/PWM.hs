@@ -20,7 +20,7 @@ data PWM a = PWM
 makeLenses ''PWM
 
 mkPWM :: Bounded a => a -> PWM a
-mkPWM d = PWM (C.mkCounter minBound) d
+mkPWM = PWM (C.mkCounter minBound)
 
 setDuty :: (Monoid w, Monad m, Bounded a) => a -> RWST r w (PWM a) m ()
 setDuty d = do

@@ -301,7 +301,7 @@ data PWM a = PWM
 makeLenses ''PWM
 
 mkPWM :: Bounded a => a -> PWM a
-mkPWM d = PWM (C.mkCounter minBound) d
+mkPWM = PWM (C.mkCounter minBound)
 ```
 The PWM state consists of a counter and a value used to control the duty cycle. Also, note that we keep `PWM` polymorphic, just like our counter. Our smart constructor creates a PWM with an initial duty cycle and a counter with an initial value set to the minimum bound. 
 
