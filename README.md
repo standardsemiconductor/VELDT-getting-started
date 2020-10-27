@@ -1222,6 +1222,78 @@ frame b = (1 :: BitVector 1) ++# b ++# (0 :: BitVector 1)
 First we do case analysis on `txFsm`.
   1. If `txFsm` is `TxStart` we `frame` the input byte, transform it into a `Vec` of `Bit`s (note this reverses the bits), then `give` it to the serializer `_txSer`. We also set the counter `_txCtr` to zero, update `txFsm` to the `TxSend` state, and return `False` which indicates the transmit is in progress.
   2. If `txFsm` is `TxSend`, first we `peek` at the current bit to serialize, wrap it in a `Tx` type, then pass it to `tell` which transmits the bit via the writer monad.
+
+Next we tackle the receiver, beginning with the types:
+```haskell
+data RxFsm = RxIdle | RxStart | RxRecv | RxStop
+  deriving (NFDataX, Generic)
+
+data Receiver = Receiver
+  { _rxDes  :: S.Deserializer 8 Bit
+  , _rxBaud :: Unsigned 16
+  , _rxCtr  :: C.Counter (Unsigned 16)
+  , _rxFsm  :: RxFsm
+  }
+  deriving (NFDataX, Generic)
+makeLenses ''Receiver
+
+mkReceiver :: Unsigned 16 -> Receiver
+mkReceiver b = Receiver
+  { _rxDes  = S.mkDeserializer 0 S.L
+  , _rxBaud = b
+  , _rxCtr  = C.mkCounter 0
+  , _rxFsm  = RxIdle
+  }
+```
+The receiver is a four-state finite-state machine (FSM). The receiver state has four parts, each of which are made into lenses with `makeLenses`:
+  1. an 8-bit deserializer `_rxDes` to buffer incoming bits from the RX wire.
+  2. a baud rate `_rxBaud`
+  3. a baud counter `_rxCtr`
+  4. a fsm `_rxFsm`
+
+Finally we define a smart constructor `mkReceiver` which only takes a baud rate. It intializes the deserializer with direction left `L`, and all bits are zero. It sets the baud rate to the input. The baud counter `_rxCtr` starts at zero and the `_rxFsm` FSM starts in the `RxIdle` state. Next we define and implement the receiver:
+```haskell
+receive :: Monoid w => RWS Rx w Receiver (Maybe Byte)
+receive = use rxFsm >>= \case
+  RxIdle ->  do
+    rxLow <- asks $ (== low) . unRx
+    when rxLow $ do
+      zoom rxCtr C.increment
+      rxFsm .= RxStart
+    return Nothing
+  RxStart -> do
+    rxLow <- asks $ (== low) . unRx
+    baudHalf <- uses rxBaud (`shiftR` 1)
+    ctrDone <- zoom rxCtr $ C.gets (== baudHalf)
+    zoom rxCtr $ C.incrementUnless (== baudHalf)
+    when ctrDone $ if rxLow
+      then rxFsm .= RxRecv
+      else rxFsm .= RxIdle
+    return Nothing
+  RxRecv -> do
+    ctrDone <- countBaud
+    when ctrDone $ do
+      i <- asks unRx
+      zoom rxDes $ S.deserialize i
+      full <- zoom rxDes S.full
+      when full $ rxFsm .= RxStop
+    return Nothing
+  RxStop -> do
+    ctrDone <- countBaud
+    if ctrDone
+      then do
+        byte <- v2bv <$> zoom rxDes S.get
+        zoom rxDes S.clear
+        rxFsm .= RxIdle
+        return $ Just byte
+      else return Nothing
+  where
+    countBaud = do
+      baud <- use rxBaud
+      ctrDone <- zoom rxCtr $ C.gets (== baud)
+      zoom rxCtr $ C.incrementUnless (== baud)
+      return ctrDone
+```
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Coming Soon
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
