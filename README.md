@@ -1223,6 +1223,8 @@ First we do case analysis on `txFsm`.
   1. If `txFsm` is `TxStart` we `frame` the input byte, transform it into a `Vec` of `Bit`s (note this reverses the bits), then `give` it to the serializer `_txSer`. We also set the counter `_txCtr` to zero, update `txFsm` to the `TxSend` state, and return `False` which indicates the transmit is in progress.
   2. If `txFsm` is `TxSend`, first we `peek` at the current bit to serialize, wrap it in a `Tx` type, then pass it to `tell` which transmits the bit via the writer monad.
 
+We have to `frame` a byte before sending it, this means adding a start bit and an end bit. The start bit is `0` and the end bit is `1`. Our frame function takes into account that `bv2v` reverses the bits, thus the start bit in `frame` is added to the end of the byte and the stop bit is added to the beginning.
+
 Next we tackle the receiver, beginning with the types:
 ```haskell
 data RxFsm = RxIdle | RxStart | RxRecv | RxStop
@@ -1306,7 +1308,7 @@ The receiver starts with case analysis on `_rxFsm`:
 RX             Start   Bit 0    Bit1    Bit2   Bit3     Bit4    Bit5    Bit6   Bit7    Stop
 ---------------       ---------               -------- ------- ------- --------       -----------------
               |_______|       |_______ _______|                               |_______|
-              ^RxIdle     ^RxRecv         ^RxRecv         ^RxRecv         ^RxRecv         ^RxStop > RxIdle
+           <^RxIdle      ^RxRecv         ^RxRecv         ^RxRecv         ^RxRecv         ^RxStop > RxIdle
 	          ^RxStart        ^RxRecv        ^RxRecv          ^RxRecv         ^RxRecv
                            
 ```
@@ -1335,7 +1337,7 @@ write = zoom transmitter . transmit
 ```
 The `Uart` state type consists of a receiver and a transmitter. We define a smart constructor `mkUart` which takes a baud rate and constructs both the receiver and transmitter with the same baud rate. Next we define a `read` function which just `zoom`s into the receiver. When the `read` function is busy it returns `Nothing`, when it has a byte it returns `Just` that byte. Finally, the `write` function `zoom`s into the transmitter. It returns `False` when busy sending and `True` when it is done.
 
-Here is the full `Uart.hs` source code:
+Here is the full [`Uart.hs`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Uart.hs) source code:
 ```haskell
 module Veldt.Uart
   ( Rx(Rx)
