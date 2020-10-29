@@ -17,9 +17,9 @@
 **Clicking on any header within this document will return to Table of Contents** 
 
 ## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-This is an opinionated guide to hardware design from first principles using Haskell and VELDT. However, much of the information within this document can be useful independent of the HDL or FPGA development platform. We assume you have VELDT FPGA development board; if not, go order one from [Amazon](https://www.amazon.com/dp/B08F9T8DFT?ref=myi_title_dp). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
+This is an opinionated guide to hardware design from first principles using Haskell and VELDT.  We assume you are using the [VELDT FPGA development board](https://www.standardsemiconductor.com) available to order from [Amazon](https://www.amazon.com/dp/B08F9T8DFT?ref=myi_title_dp). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
   
-Much of the code included in the examples is written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find desiging hardware with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot; over time the dividends pay well. Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools. If you design hardware in a language other than Haskell, feel free to skip over the language specific aspects. We hope to translate the examples to other HDLs as this guide develops.
+The code included in the examples is written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find desiging hardware with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot. As hardware designs scale so too does the language and the ability to abstractly compose machines makes designing them a blast! Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools. If you design hardware in a language other than Haskell, feel free to skip over the language specific aspects. We hope to translate the examples to other HDLs as this guide develops.
   
 We use the Project IceStorm flow for synthesis, routing, and programming. These are excellent, well-maintained open source tools. For installation and setup instructions visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#project-icestorm) repo.
 
@@ -1294,6 +1294,222 @@ receive = use rxFsm >>= \case
       zoom rxCtr $ C.incrementUnless (== baud)
       return ctrDone
 ```
+First, note the `countBaud` function, it gets the baud rate `_rxBaud` and checks if it is equal to `_rxCtr`, binding the result to `ctrDone`. If the counter is not equal to the baud rate, we increment. Finally, the function returns `ctrDone`. This function is used in each of the receiver states to indicate when to sample the RX wire.
+
+The receiver starts with case analysis on `_rxFsm`: 
+  1. `RxIdle` is the initial state. We simply wait until the RX wire goes low. When this happens, the receiver increments it's baud counter and sets `_rxFsm` to `RxStart`. This state always returns `Nothing` because there is no byte received yet.
+  2. `RxStart` verifies the start bit. It waits until the `_rxCtr` is half the baud rate then checks if the RX wire is still low. If the RX wire is still low, we set `_rxFsm` to the next state `RxRecv`, otherwise the receiver should go back to idling due to an inconsistent start bit. Note when the counter reaches half the baud rate, using `incrementUnless (== baudHalf)` will reset the `_rxCtr` to zero. This state always returns `Nothing` because there is no byte received yet.
+  3. `RxRecv` counts up to the baud rate with `countBaud`. When `ctrDone` is true, we sample the RX wire and `deserialize` it. If the deserializer is full, then we set `_rxFsm` to `RxStop`, otherwise we will stay in the `RxRecv` state to sample another bit. This state always returns `Nothing` because we have not yet counted the stop bit.
+  4. `RxStop` counts up to the baud rate with `countBaud`. When `ctrDone` is false, we return `Nothing` because the stop bit has not yet been verified. When `ctrDone` is true, we retrieve the byte from the deserializer, `clear` the deserializer for further use, set `_rxFsm` back to `RxIdle`, and return `Just` the byte.
+
+```
+RX             Start   Bit 0    Bit1    Bit2   Bit3     Bit4    Bit5    Bit6   Bit7    Stop
+---------------       ---------               -------- ------- ------- --------       -----------------
+              |_______|       |_______ _______|                               |_______|
+              ^RxIdle     ^RxRecv         ^RxRecv         ^RxRecv         ^RxRecv         ^RxStop > RxIdle
+	          ^RxStart        ^RxRecv        ^RxRecv          ^RxRecv         ^RxRecv
+                           
+```
+Note that we sample in the "middle" of each bit. This helps to guarantee that our UART doesn't jumble the bits. Each `^RxRecv` will be `baudRate` clock cycles apart. We will see in the next section how to calculate a working baud rate for our UART given the 12Mhz crystal provided by VELDT.
+
+The last part of the UART module combines both receiver and transmitter and defines a clear API:
+```haskell
+data Uart = Uart
+  { _receiver    :: Receiver
+  , _transmitter :: Transmitter
+  }
+  deriving (NFDataX, Generic)
+makeLenses ''Uart
+
+mkUart :: Unsigned 16 -> Uart
+mkUart baud = Uart
+  { _receiver    = mkReceiver baud
+  , _transmitter = mkTransmitter baud
+  }
+
+read :: Monoid w => RWS Rx w Uart (Maybe Byte)
+read = zoom receiver receive
+
+write :: Byte -> RWS r Tx Uart Bool
+write = zoom transmitter . transmit
+```
+The `Uart` state type consists of a receiver and a transmitter. We define a smart constructor `mkUart` which takes a baud rate and constructs both the receiver and transmitter with the same baud rate. Next we define a `read` function which just `zoom`s into the receiver. When the `read` function is busy it returns `Nothing`, when it has a byte it returns `Just` that byte. Finally, the `write` function `zoom`s into the transmitter. It returns `False` when busy sending and `True` when it is done.
+
+Here is the full `Uart.hs` source code:
+```haskell
+module Veldt.Uart
+  ( Rx(Rx)
+  , unRx
+  , Tx(Tx)
+  , unTx
+  , Byte
+  , Uart
+  , mkUart
+  , read
+  , write
+  ) where
+
+import Clash.Prelude hiding (read)
+import Control.Monad.RWS
+import Control.Lens hiding ((:>))
+import qualified Veldt.Counter as C
+import qualified Veldt.Serial  as S
+
+type Byte = BitVector 8
+
+newtype Rx = Rx { unRx :: Bit }
+newtype Tx = Tx { unTx :: Bit }
+
+instance Semigroup Tx where
+  Tx tx <> Tx tx' = Tx $ tx .&. tx'
+
+instance Monoid Tx where
+  mempty = Tx 1
+
+-----------------
+-- Transmitter --
+-----------------
+data TxFsm = TxStart | TxSend
+  deriving (NFDataX, Generic)
+
+data Transmitter = Transmitter
+  { _txSer  :: S.Serializer 10 Bit
+  , _txBaud :: Unsigned 16
+  , _txCtr  :: C.Counter (Unsigned 16)
+  , _txFsm  :: TxFsm
+  }
+  deriving (NFDataX, Generic)
+makeLenses ''Transmitter
+
+mkTransmitter :: Unsigned 16 -> Transmitter
+mkTransmitter b = Transmitter
+  { _txSer  = S.mkSerializer 0 S.R
+  , _txBaud = b
+  , _txCtr  = C.mkCounter 0
+  , _txFsm  = TxStart
+  }
+
+transmit :: Byte -> RWS r Tx Transmitter Bool
+transmit byte = use txFsm >>= \case
+  TxStart -> do
+    zoom txSer $ S.give $ bv2v $ frame byte
+    zoom txCtr $ C.set 0
+    txFsm .= TxSend
+    return False
+  TxSend -> do
+    zoom txSer S.peek >>= tell . Tx
+    baud <- use txBaud
+    ctrDone <- zoom txCtr $ C.gets (== baud)
+    zoom txCtr $ C.incrementUnless (== baud)
+    if ctrDone
+      then do
+        zoom txSer S.serialize
+        serEmpty <- zoom txSer S.empty
+        when serEmpty $ txFsm .= TxStart
+        return serEmpty
+      else return False
+      
+frame :: Byte -> BitVector 10
+frame b = (1 :: BitVector 1) ++# b ++# (0 :: BitVector 1)
+
+--------------
+-- Receiver --
+--------------
+data RxFsm = RxIdle | RxStart | RxRecv | RxStop
+  deriving (NFDataX, Generic)
+
+data Receiver = Receiver
+  { _rxDes  :: S.Deserializer 8 Bit
+  , _rxBaud :: Unsigned 16
+  , _rxCtr  :: C.Counter (Unsigned 16)
+  , _rxFsm  :: RxFsm
+  }
+  deriving (NFDataX, Generic)
+makeLenses ''Receiver
+
+mkReceiver :: Unsigned 16 -> Receiver
+mkReceiver b = Receiver
+  { _rxDes  = S.mkDeserializer 0 S.L
+  , _rxBaud = b
+  , _rxCtr  = C.mkCounter 0
+  , _rxFsm  = RxIdle
+  }
+
+receive :: Monoid w => RWS Rx w Receiver (Maybe Byte)
+receive = use rxFsm >>= \case
+  RxIdle ->  do
+    rxLow <- asks $ (== low) . unRx
+    when rxLow $ do
+      zoom rxCtr C.increment
+      rxFsm .= RxStart
+    return Nothing
+  RxStart -> do
+    rxLow <- asks $ (== low) . unRx
+    baudHalf <- uses rxBaud (`shiftR` 1) 
+    ctrDone <- zoom rxCtr $ C.gets (== baudHalf)
+    zoom rxCtr $ C.incrementUnless (== baudHalf)
+    when ctrDone $ if rxLow
+      then rxFsm .= RxRecv
+      else rxFsm .= RxIdle
+    return Nothing
+  RxRecv -> do
+    ctrDone <- countBaud
+    when ctrDone $ do
+      i <- asks unRx
+      zoom rxDes $ S.deserialize i
+      full <- zoom rxDes S.full
+      when full $ rxFsm .= RxStop
+    return Nothing
+  RxStop -> do
+    ctrDone <- countBaud
+    if ctrDone
+      then do
+        byte <- v2bv <$> zoom rxDes S.get
+        zoom rxDes S.clear
+        rxFsm .= RxIdle
+        return $ Just byte
+      else return Nothing
+  where
+    countBaud = do
+      baud <- use rxBaud
+      ctrDone <- zoom rxCtr $ C.gets (== baud)
+      zoom rxCtr $ C.incrementUnless (== baud)
+      return ctrDone
+
+----------
+-- Uart --
+----------
+data Uart = Uart
+  { _receiver    :: Receiver
+  , _transmitter :: Transmitter
+  }
+  deriving (NFDataX, Generic)
+makeLenses ''Uart
+
+mkUart :: Unsigned 16 -> Uart
+mkUart baud = Uart
+  { _receiver    = mkReceiver baud
+  , _transmitter = mkTransmitter baud
+  }
+
+read :: Monoid w => RWS Rx w Uart (Maybe Byte)
+read = zoom receiver receive
+
+write :: Byte -> RWS r Tx Uart Bool
+write = zoom transmitter . transmit
+```
+To end this part, clean and rebuild the library. There should not be any errors.
+```console
+foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
+...
+Building library for veldt-0.1.0.0..
+[1 of 4] Compiling Veldt.Counter ...
+[2 of 4] Compiling Veldt.Ice40.Rgb ...
+[3 of 4] Compiling Veldt.PWM ...
+[4 of 4] Compiling Veldt.Serial ...
+[5 of 5] Compiling Veldt.UART ...
+```
+In the next part we demo our UART!
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Coming Soon
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
