@@ -622,12 +622,12 @@ module Blinker where
 import Clash.Prelude
 import Clash.Annotations.TH
 import Control.Monad.RWS
-import Control.Lens
+import Control.Lens hiding (Index)
 import qualified Veldt.Counter   as C
 import qualified Veldt.PWM       as P
 import qualified Veldt.Ice40.Rgb as R
 ```
-We find that using qualified imports helps to quickly determine which modules functions and types originate from when reading source code or looking up type signatures. `Clash.Annotations.TH` includes functions to name the top entity module which is useful for synthesis.
+We find that using qualified imports helps to quickly determine which modules functions and types originate from when reading source code or looking up type signatures. `Clash.Annotations.TH` includes functions to name the top entity module which is useful for synthesis. Both `Clash.Prelude` and `Control.Lens` export an `Index` type, in order to use the prelude `Index`, we skip importing it from `Control.Lens` with the `hiding` keyword. The [Haskell wiki](https://wiki.haskell.org/Import) has more information concerning imports. 
 
 Let's define some types to get a feel for the state space.
 ```haskell
@@ -641,7 +641,7 @@ data Blinker = Blinker
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
-  , _timer    :: C.Counter (Unsigned 25)
+  , _timer    :: C.Counter (Index 24000000)
   } deriving (NFDataX, Generic)
 makeLenses ''Blinker
 
@@ -672,8 +672,8 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- zoom timer $ C.gets isTwoSeconds
-  zoom timer $ C.incrementUnless isTwoSeconds
+  timerDone <- zoom timer $ C.gets (== maxBound)
+  zoom timer C.increment
   when timerDone $ do
     c' <- color <%= nextColor
     let (redDuty', greenDuty', blueDuty') = toPWM c'
@@ -682,11 +682,10 @@ blinkerM = do
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
   where
-    isTwoSeconds = (== 24000000)
     nextColor White = Off
     nextColor c     = succ c
 ```
-First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals 24,000,000 and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, counting to 24,000,000 takes two seconds. Having checked the timer, we use `incrementUnless`. Remember, this checks if the timer equals 24,000,000 in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. To update the color we use the `<%=` operator from the lens library. It modifies the value in focus and returns the new value which we bind to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally we `return` the PWM outputs that were bound at the start of `blinkerM`. The `nextColor` function takes advantage of the fact that `Color` derives `Enum`, we just need to manually map `White` to `Off` to avoid going out of bounds.
+First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals `maxBound` and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we then `increment`. Remember, `increment` checks if the timer equals `maxBound` in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. To update the color we use the `<%=` operator from the lens library. It modifies the value in focus and returns the new value which we bind to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. The `nextColor` function takes advantage of the fact that `Color` derives `Enum`, we just need to manually map `White` to `Off` to avoid going out of bounds.
 
 Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell

@@ -3,7 +3,7 @@ module Blinker where
 import Clash.Prelude
 import Clash.Annotations.TH
 import Control.Monad.RWS
-import Control.Lens
+import Control.Lens hiding (Index)
 import qualified Veldt.Counter   as C
 import qualified Veldt.PWM       as P
 import qualified Veldt.Ice40.Rgb as R
@@ -18,7 +18,7 @@ data Blinker = Blinker
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
-  , _timer    :: C.Counter (Unsigned 25)
+  , _timer    :: C.Counter (Index 24000000)
   } deriving (NFDataX, Generic)
 makeLenses ''Blinker
 
@@ -43,8 +43,8 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- zoom timer $ C.gets isTwoSeconds
-  zoom timer $ C.incrementUnless isTwoSeconds
+  timerDone <- zoom timer $ C.gets (== maxBound)
+  zoom timer C.increment
   when timerDone $ do
     c' <- color <%= nextColor
     let (redDuty', greenDuty', blueDuty') = toPWM c'
@@ -53,7 +53,6 @@ blinkerM = do
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
   where
-    isTwoSeconds = (== 24000000)
     nextColor White = Off
     nextColor c     = succ c
 
