@@ -515,7 +515,7 @@ rgbPrim
   -> Signal dom Bit
   -> Signal dom Bit
   -> Signal dom (Bit, Bit, Bit)
-rgbPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
+rgbPrim !_ !_ !_ !_ !_ !_ !_ = pure (0, 0, 0)
 ```
 Although we do not provide a real implementation for the the primitive in Haskell, it is good practice to do so and helps when testing and modeling. Also, note the type of `rgbPrim` matches exactly to the inlined primitive type and has a `NOINLINE` annotation.
 

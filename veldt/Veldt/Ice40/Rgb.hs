@@ -61,7 +61,7 @@ rgbPrim
   -> Signal dom Bit
   -> Signal dom Bit
   -> Signal dom (Bit, Bit, Bit)
-rgbPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
+rgbPrim !_ !_ !_ !_ !_ !_ !_ = pure (0, 0, 0)
 
 type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
 
