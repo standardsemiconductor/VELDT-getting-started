@@ -517,7 +517,7 @@ rgbPrim
   -> Signal dom (Bit, Bit, Bit)
 rgbPrim !_ !_ !_ !_ !_ !_ !_ = pure (0, 0, 0)
 ```
-Although we do not provide a real implementation for the the primitive in Haskell, it is good practice to do so and helps when testing and modeling. Also, note the type of `rgbPrim` matches exactly to the inlined primitive type and has a `NOINLINE` annotation.
+Although we do not provide a real implementation for the the primitive in Haskell, it is good practice to do so and helps when testing and modeling. We use [bang patterns](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#bang-patterns-and-strict-haskell) on the arguments to ensure our primitive is strictly evaluated. Also, note the type of `rgbPrim` matches exactly to the inlined primitive type and has a `NOINLINE` annotation.
 
 Instead of constantly writing `(Bit, Bit, Bit)` for our RGB tuple, let's define a type synonym with some tags which are useful when constraining pins.
 ```haskell
@@ -596,7 +596,7 @@ rgbPrim
   -> Signal dom Bit
   -> Signal dom Bit
   -> Signal dom (Bit, Bit, Bit)
-rgbPrim _ _ _ _ _ _ _ = pure (0, 0, 0)
+rgbPrim !_ !_ !_ !_ !_ !_ !_ = pure (0, 0, 0)
 
 type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
 
@@ -805,7 +805,7 @@ blinkerM = do
     nextColor White = Off
     nextColor c     = succ c
 ```
-First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals `maxBound` and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we then `increment`. Remember, `increment` checks if the timer equals `maxBound` in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. To update the color we use the `<%=` operator from the lens library. It modifies the value in focus and returns the new value which we bind to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. The `nextColor` function takes advantage of the fact that `Color` derives `Enum`, we just need to manually map `White` to `Off` to avoid going out of bounds.
+First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals `maxBound` and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we then `increment`. Remember, `increment` checks if the timer equals `maxBound` in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. To update the color we use the [`<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--37--61-) operator from the lens library. It modifies the value in focus and returns the new value which we bind to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. The `nextColor` function takes advantage of the fact that `Color` derives `Enum`, we just need to manually map `White` to `Off` to avoid going out of bounds.
 
 Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
