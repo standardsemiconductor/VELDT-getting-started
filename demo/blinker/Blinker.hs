@@ -11,10 +11,10 @@ import qualified Veldt.Ice40.Rgb as R
 type Byte = BitVector 8
 
 data Color = Off | Red | Green | Blue | White
-  deriving (NFDataX, Generic, Enum)
+  deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
-  { _color    :: Color
+  { _color    :: C.Counter Color
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
@@ -24,7 +24,7 @@ makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = Off
+  { _color    = C.mkCounter Off
   , _redPWM   = P.mkPWM 0
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
@@ -46,15 +46,12 @@ blinkerM = do
   timerDone <- zoom timer $ C.gets (== maxBound)
   zoom timer C.increment
   when timerDone $ do
-    c' <- color <%= nextColor
+    c' <- zoom color $ C.increment >> C.get
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
     zoom greenPWM $ P.setDuty greenDuty'
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
-  where
-    nextColor White = Off
-    nextColor c     = succ c
 
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()

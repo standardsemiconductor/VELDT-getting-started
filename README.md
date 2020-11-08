@@ -526,7 +526,7 @@ type Rgb = ("red" ::: Bit, "green" ::: Bit, "blue" ::: Bit)
 Finally, using our `Rgb` type, we wrap the primitive and give it some default parameters.
 ```haskell
 rgb :: Signal dom Rgb -> Signal dom Rgb
-rgb rgbPWM = let (r, g, b) = unbundle rgb
+rgb rgbPWM = let (r, g, b) = unbundle rgbPWM
              in rgbPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
 ```
 `unbundle` is part of a `Signal` isomorphism, the other part being `bundle`. In this case, `unbundle` maps the type `Signal dom (Bit, Bit, Bit)` to `(Signal dom Bit, Signal dom Bit, Signal dom Bit)`. The `String` parameters we give to `rgbPrim` define the current and mode outputs for the driver. It may be prudent to adjust these parameters depending on the power requirements of your application. It is a good exercise to define a custom current/mode data type and use that in the wrapper `rgb` for easy usage.
@@ -754,10 +754,10 @@ Let's define some types to get a feel for the state space.
 type Byte = BitVector 8
 
 data Color = Off | Red | Green | Blue | White
-  deriving (NFDataX, Generic, Enum)
+  deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
-  { _color    :: Color
+  { _color    :: C.Counter Color
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
@@ -767,14 +767,14 @@ makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = Off
+  { _color    = C.mkCounter Off
   , _redPWM   = P.mkPWM 0
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
   , _timer    = C.mkCounter 0
   } 
 ```
-The blinker needs a color, three PWMs (one to drive each RGB signal), and a timer which will indicate when the color should change. We also create the `mkBlinker` smart constructor which initializes the color to `Off` and sets each PWM duty cycle to `0` and the timer to `0`. We derive `Enum` for `Color` so we can use `succ`, e.g. `succ Red == Green`.
+The blinker needs a color counter, three PWMs (one to drive each RGB signal), and a timer which will indicate when the color should change. We also create the `mkBlinker` smart constructor which initializes the color to `Off` and sets each PWM duty cycle to `0` and the timer to `0`. We derive `Eq`, `Bounded` and `Enum` (along with the usual `NFDataX` and `Generic`) for `Color` so we can make it into a counter. For example, if we want to change the color from Red to Green, we can use `increment`. Remember `increment` also respects bounds, so incrementing the color `White` just wraps back around to `Off`.
 
 Next, we create a `toPWM` function to convert a `Color` into its RGB triple which we use to set the PWM duty cycles.
 ```haskell
@@ -795,17 +795,14 @@ blinkerM = do
   timerDone <- zoom timer $ C.gets (== maxBound)
   zoom timer C.increment
   when timerDone $ do
-    c' <- color <%= nextColor
+    c' <- zoom color $ C.increment >> C.get
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
     zoom greenPWM $ P.setDuty greenDuty'
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
-  where
-    nextColor White = Off
-    nextColor c     = succ c
 ```
-First we run each PWM and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals `maxBound` and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we then `increment`. Remember, `increment` checks if the timer equals `maxBound` in which case the timer resets to 0, otherwise it increments. When `timerDone` is bound to `True`, we change the `color` and then update each PWM's duty cycle. To update the color we use the [`<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--37--61-) operator from the lens library. It modifies the value in focus and returns the new value which we bind to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. The `nextColor` function takes advantage of the fact that `Color` derives `Enum`, we just need to manually map `White` to `Off` to avoid going out of bounds.
+First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals `maxBound` and bind the `Bool` to `timerDone`. Because the clock has a frequency of 12Mhz and the timer increments every cycle, counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we `increment` it; remember that `increment` respects bounds. When `timerDone` is bound to `True`, we `increment` the `color` and bind the new color to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
 
 Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
@@ -837,7 +834,7 @@ module Blinker where
 import Clash.Prelude
 import Clash.Annotations.TH
 import Control.Monad.RWS
-import Control.Lens
+import Control.Lens hiding (Index)
 import qualified Veldt.Counter   as C
 import qualified Veldt.PWM       as P
 import qualified Veldt.Ice40.Rgb as R
@@ -845,20 +842,20 @@ import qualified Veldt.Ice40.Rgb as R
 type Byte = BitVector 8
 
 data Color = Off | Red | Green | Blue | White
-  deriving (NFDataX, Generic, Enum)
+  deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
-  { _color    :: Color
+  { _color    :: C.Counter Color
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
-  , _timer    :: C.Counter (Unsigned 25)
+  , _timer    :: C.Counter (Index 24000000)
   } deriving (NFDataX, Generic)
 makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = Off
+  { _color    = C.mkCounter Off
   , _redPWM   = P.mkPWM 0
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
@@ -877,19 +874,15 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- zoom timer $ C.gets isTwoSeconds
-  zoom timer $ C.incrementUnless isTwoSeconds
+  timerDone <- zoom timer $ C.gets (== maxBound)
+  zoom timer C.increment
   when timerDone $ do
-    c' <- color <%= nextColor
+    c' <- zoom color $ C.increment >> C.get
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
     zoom greenPWM $ P.setDuty greenDuty'
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
-  where
-    isTwoSeconds = (== 24000000)
-    nextColor White = Off
-    nextColor c     = succ c
 
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
@@ -904,7 +897,7 @@ topEntity
 topEntity clk = withClockResetEnable clk rst enableGen blinker
   where
     rst = unsafeFromHighPolarity $ pure False
-makeTopEntityWithName 'topEntity "Blinker"
+makeTopEntityWithName 'topEntity "Blinker"  
 ```
 
 We need a `.pcf` file to connect the FPGA ports to our design ports. Keep in mind that `Rgb` is annotated with `red`, `green`, and `blue`. Thus, our only input is `clk`, and our three outputs are `led_red`, `led_green`, `led_blue`. Here is the [Blinker.pcf](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.pcf).
@@ -962,7 +955,7 @@ To end this section, we build, synthesize, place-and-route, pack, and program VE
 foo@bar:~/VELDT-getting-started/demo/blinker$ make clean-all && make prog
 .....
 Info: Device utilisation:
-Info: 	         ICESTORM_LC:   198/ 5280     3%
+Info: 	         ICESTORM_LC:   161/ 5280     3%
 Info: 	        ICESTORM_RAM:     0/   30     0%
 Info: 	               SB_IO:     1/   96     1%
 Info: 	               SB_GB:     3/    8    37%
@@ -979,6 +972,7 @@ Info: 	         SB_RGBA_DRV:     1/    1   100%
 Info: 	      ICESTORM_SPRAM:     0/    4     0%
 .....
 ```
+You can find the blinker demo [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker).
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART. Equipped with our UART, we create a demo which echoes its input.
 ### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
