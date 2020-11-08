@@ -614,8 +614,9 @@ Building library for veldt-0.1.0.0..
 [3 of 3] Compiling Veldt.PWM        ...
 ```
 You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We now move onto creating a blinker.
+
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, then blue and cycle back to off before repeating. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal.
+This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, blue, white then cycle back to off. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal.
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir -p demo/blinker && cd demo/blinker
 ```
