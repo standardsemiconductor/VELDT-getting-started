@@ -9,25 +9,27 @@
    4. [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#fiat-lux-blinker)
 3. [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar)
    1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
-   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art-work-in-progress) Work In Progress
-   3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo) Coming Soon
-4. [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-pride) Coming Soon
-5. [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#section-5-where-lions-roam) Coming Soon
+   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art)
+   3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo)
    
 **Clicking on any header within this document will return to Table of Contents** 
 
 ## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 This is an opinionated guide to hardware design from first principles using Haskell and VELDT.  We assume you are using the [VELDT FPGA development board](https://www.standardsemiconductor.com) available to order from [Amazon](https://www.amazon.com/dp/B08F9T8DFT?ref=myi_title_dp). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
   
-The code included in the examples is written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find desiging hardware with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot. As hardware designs scale so too does the language and the ability to abstractly compose machines makes designing them a blast! Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools. If you design hardware in a language other than Haskell, feel free to skip over the language specific aspects. We hope to translate the examples to other HDLs as this guide develops.
+The code included in the examples is written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find desiging hardware with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot. As hardware designs scale so too does the language and the ability to abstractly compose machines makes designing them a blast! Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools.
   
 We use the Project IceStorm flow for synthesis, routing, and programming. These are excellent, well-maintained open source tools. For installation and setup instructions visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#project-icestorm) repo.
 
-This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 2](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 3](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar) covers serializers and deserializers which are used to construct a UART. In [Section 4](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-pride) we learn how to interact with the memory provided by VELDT. Finally, in [Section 5](https://github.com/standardsemiconductor/VELDT-getting-started#section-5-where-lions-roam) we design a simple CPU with a custom ISA, then integrate our LED, UART, and memory peripherals to create a System-on-Chip (SoC). By the end of the guide, you will have a library of commonly used sub-components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/veldt) and [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directories.
+This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 2](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 3](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar) covers serializers and deserializers which are used to construct a UART. In the future we hope to add sections which demonstrate how to interact with the memory provided by VELDT, design a simple CPU with a custom ISA, and constuct a System-On-Chip (SoC).
+
+By the end of the guide, you will have a library of commonly used sub-components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/veldt) and [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directories.
 
 Finally, if you have any suggestions, comments, discussions, edits additions etc. please open an issue in this repo. We value any and all contributions. Let's get started!
+
 ## [Section 2: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we start by building a counter. Then using the counter, construct a PWM. Equipped with our counter and PWM, we use the RGB LED Driver IP to create our first running application on VELDT; a blinker!
+
 ### [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 We begin by creating a directory called "veldt" to contain our haskell library:
 ```console
@@ -1230,7 +1232,8 @@ Building library for veldt-0.1.0.0..
 [4 of 4] Compiling Veldt.Serial ...
 ```
 In the next part we develop a UART.
-### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents) (Work In Progress)
+
+### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Before diving into this section, it maybe be helpful to familiarize yourself with UART by browsing the [Wikipedia page](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter). Let's create a `Uart.hs` file.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Uart.hs
@@ -1279,7 +1282,7 @@ instance Semigroup Tx where
 instance Monoid Tx where
   mempty = Tx 1
 ```
-We want to be able to `read` and `write` bytes over UART so first we define a `Byte` type synonym to save keystrokes instead of having to say `BitVector 8`. Next we define the `Rx` and `Tx` newtypes which wrap `Bit`. Defining `Tx` as a newtype over `Bit` is important because we want to use it with the writer monad of `RWS`. The writer monad has a `Monoid` constraint so we make `Tx` an instance of `Semigroup` and `Monoid`. The `Tx` semigroup uses `.&.` (bitwise AND) as its product and `1` as its unit. We use `1` as the unit because when the UART is idle, it should drive the tx line high, indicating there is nothing to send. We now move onto creating a transmitter. Let's start by defining its types.
+We want to be able to `read` and `write` bytes over UART so first we define a `Byte` type synonym for `BitVector 8` to save some keystrokes. Next we define the `Rx` and `Tx` newtypes which wrap `Bit`. Defining `Tx` as a newtype over `Bit` is important because we want to use it with the writer monad of `RWS`. The writer monad has a `Monoid` constraint so we make `Tx` an instance of `Semigroup` and `Monoid`. The `Tx` semigroup uses `.&.` (bitwise AND) as its product and `1` as its unit. We use `1` as the unit because when the UART is idle, it should drive the tx line high, indicating there is nothing to send. We now move onto creating a transmitter. Let's start by defining its types.
 ```haskell
 data TxFsm = TxStart | TxSend
   deriving (NFDataX, Generic)
@@ -1423,7 +1426,7 @@ The receiver starts with case analysis on `_rxFsm`:
 RX             Start   Bit 0    Bit1    Bit2   Bit3     Bit4    Bit5    Bit6   Bit7    Stop
 ---------------       ---------               -------- ------- ------- --------       -----------------
               |_______|       |_______ _______|                               |_______|
-           <^RxIdle      ^RxRecv         ^RxRecv         ^RxRecv         ^RxRecv         ^RxStop > RxIdle
+           <^RxIdle       ^RxRecv         ^RxRecv         ^RxRecv         ^RxRecv         ^RxStop > RxIdle
 	          ^RxStart        ^RxRecv        ^RxRecv          ^RxRecv         ^RxRecv
                            
 ```
@@ -1627,6 +1630,7 @@ Building library for veldt-0.1.0.0..
 [5 of 5] Compiling Veldt.UART ...
 ```
 In the next part we demo our UART!
+
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 It's time to demonstrate usage of our UART! We will have it echo our input. First setup the `echo` project directory, we use `blinker` as our template. We need to copy `bin/`, `cabal.project`, and `blinker.cabal`, along with `Makefile_generic` and `pcf_generic` and rename the package to `echo`.
 ```console
@@ -1799,7 +1803,7 @@ import qualified Veldt.Uart as U
 ```
 First, we use [`LambdaCase`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) which saves a few keystrokes when doing case analysis on the finite-state machine. Next we define the module and declare imports. We have used most of these imports before so I will not go into detail but note we import `Veldt.Uart` as `qualified`, so anytime we want to use something from our Uart module we need to prefix it with `U.`. This is a stylistic choice, though it can help organize imports and avoid any overlapping function or type names.
 
-Our echo demo first read a byte, then write that same byte. We will need three stateful elements:
+Our echo demo reads a byte, then writes that same byte. We will need three stateful elements:
   1. The FSM which indicates whether we are currently reading a byte or writing a byte.
   2. The UART state.
   3. A byte to save between reads and writes.
@@ -1823,7 +1827,7 @@ mkEcho = Echo
   , _fsm  = Read
   }
 ```
-We also declare a smart constructor `mkEcho` which initializes our state. It's pretty straightforward but I want to focus on how we chose `624` when constructing the UART; it is integral to the correct functioning and timing of the UART. We will be running the demo with a clock frequency of 12Mhz and the desired baud rate is 19200. 12 000 000 / 19 200 = 625, so we count from 0 - 624 inclusive between bit samples. The key is to select a baud rate which is compatible with the clock frequency. 12Mhz and 19 200  are compatible because 19 200 divides 12 000 000 without remainder. In reality UART can handle a slight mismatch, but it must remain under a certain threshold.
+We also declare a smart constructor `mkEcho` which initializes our state. The byte is filled with a dummy value `0` and the `_fsm` is set to `Read` because the echo starts in the reading state. Most important is how we chose `624` when constructing the UART; it is integral to the correct functioning and timing of the UART. We will be running the demo with a clock frequency of 12Mhz and the desired baud rate is 19200. 12 000 000 / 19 200 = 625, so we count from 0 - 624 inclusive between bit samples. The key is to select a baud rate which is compatible with the clock frequency. 12Mhz and 19 200  are compatible because 19 200 divides 12 000 000 without remainder. In reality UART can handle a slight mismatch, but it must remain under a certain threshold.
 
 Now that we have our types, let's implement the echo:
 ```haskell
@@ -1854,10 +1858,11 @@ echo = echoMealy <^> mkEcho
     echoMealy s i = let ((), s', tx) = runRWS echoM (U.Rx i) s
                     in (s', U.unTx tx)
 ```
-[`<^>`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:-60--94--62-) takes two arguments:
+[`<^>`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:-60--94--62-) is the infix version of `mealy`; it takes two arguments
   1. the transfer function `s -> i -> (s, o)`
   2. the initial state
-It returns a function `Signal dom i -> Signal dom o`. The initial state is just `mkEcho`. The transfer function is `echoMealy` which runs `echoM` with [`runRWS :: RWS r w s a -> r -> s -> (a, s, w)`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) then reformats the output to fit the transfer function type. Note we also wrap rx and tx with their respective newtypes.
+
+`<^>` returns a function `Signal dom i -> Signal dom o`. The initial state is just `mkEcho`. The transfer function is `echoMealy` which runs `echoM` with [`runRWS :: RWS r w s a -> r -> s -> (a, s, w)`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) then reformats the output to fit the transfer function type. Note we also wrap rx and tx with their respective newtypes.
 
 Finally we define the `topEntity`:
 ```haskell
@@ -1883,28 +1888,25 @@ set_io clk 35 # iot_46b_g0 12Mhz Xtal
 ```
 You can view the [Functional Diagram](https://github.com/standardsemiconductor/VELDT-info/blob/master/functional-diagram.pdf) of the VELDT board to understand how these pins connect ot the rest of the board.
 
-Before we test out our demo, we need a way to communicate with the VELDT from our computer via UART. For this demo we use Minicom, a text-based serial port communications program though any serial communcations program should work; just make sure it is configured with the correct port, protocol and baud rate!
+Before we test out our demo, we need a way to communicate with the VELDT from our computer via UART. For this demo we use [Minicom](https://help.ubuntu.com/community/Minicom), a text-based serial port communications program though any serial communcations program should work; just make sure it is configured with the correct port, protocol and baud rate!
 
 First install minicom:
 ```console
 foo@bar:~$ sudo apt install -y minicom
 ```
-Now we need to discover the name of the serial port.
+Now we need to discover the name of the serial port. Plug in the VELDT to your computer via USB port.
 ```console
-foo@bar:~$ ls /dev/
+foo@bar:~$ dmesg | grep tty
+...
+... FTDI USB Serial Device converter now attached to ttyUSB0
 ```
-This should list the computer devices. Look at the devices prefixed by `tty`. We will now plug in the VELDT then reissue `ls /dev/` and you should see a new device, we will need the name of the new device when we setup minicom. For example, on my computer the VELDT shows up as `ttyUSB0`.
-Now plug in the VELDT to your computer via USB port.
-```console
-foo@bar:~$ ls /dev/
-```
-Locate the name of the device.
+Locate the name of the port; on my computer it is ttyUSB0.
 
 Now we can setup minicom:
 ```console
 foo@bar:~$ sudo minicom -s
 ```
-This should bring you into the minicom setup. Use the arrow keys to select `Serial port setup`. Press `Enter`. Make sure `Serial Device` matches the device we just found, if not press `a` then type `/dev/YOURDEVICEHERE`, on my computer it is `/dev/ttyUSB0`. Next make sure `Bps/Par/Bits` is set to `19200 8N1`. If not, press `e`, then use `a` or `b` to set the `Speed` to `19200`. Then press `q` to set the parity and data to `8N1`. Press enter when finished. Then press enter again to finish serial port setup. Use the arrow keys to select `Screen and Keyboard`. To make things easier, we want to set `Local Echo` to `Yes` by toggling `q`, and set `Line Wrap` to `Yes` by toggling `r`. Press enter to finish. Finally use the arrow keys to select `Save setup as dfl`, which saves this setup as the default setup. Now `Exit from Minicom`.
+This should bring you into the minicom setup. Use the arrow keys to select `Serial port setup`. Press `Enter`. Make sure `Serial Device` matches the device we just found, if not press `a` then type `/dev/YOURDEVICEHERE` followed by `Enter`, on my computer it is `/dev/ttyUSB0`. Next make sure `Bps/Par/Bits` is set to `19200 8N1`. If not, press `e`, then use `a` or `b` to set the `Speed` to `19200`. Then press `q` to set the parity and data to `8N1`. Press enter when finished. Then press enter again to finish serial port setup. Use the arrow keys to select `Screen and Keyboard`. To make things easier, we want to set `Local Echo` to `Yes` by toggling `q`, and set `Line Wrap` to `Yes` by toggling `r`. Press enter to finish. Finally use the arrow keys to select `Save setup as dfl`, which saves this setup as the default setup. Now `Exit from Minicom`.
 
 It's time to run our demo! Make sure the VELDT is plugged in via USB. The power switch (white) should be `ON`, the program switch (black) should be `FLASH`. The power indicator LED should be illuminated red.
 ```console
@@ -1933,15 +1935,11 @@ Likewise with max clock frequency; most importantly it should say `PASS at 12.00
 ```
 Info: Max frequency for clock 'clk$SB_IO_IN_$glb_clk': 65.82 MHz (PASS at 12.00 MHz)
 ```
-When the programming is finished, make sure the CDONE led is illuminated blue. Now toggle the power switch (white), then flip the configuration switch (black) to FPGA.
+When the programming is finished (indicated by CDONE LED illuminated blue), toggle the power switch (white), then flip the configuration switch (black) to FPGA.
 Next start minicom:
 ```console
 foo@bar:~/VELDT-getting-started/demo/echo$ minicom
 ```
 It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! `Ctrl-A x` will exit minicom when you are finished testing out the echo.
 
-This concludes the demo. You can find the project directory [here]().
-## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-Coming Soon
-## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-Coming Soon
+This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo).
