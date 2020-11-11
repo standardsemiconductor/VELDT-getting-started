@@ -1628,7 +1628,319 @@ Building library for veldt-0.1.0.0..
 ```
 In the next part we demo our UART!
 ### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-Coming Soon
+It's time to demonstrate usage of our UART! We will have it echo our input. First setup the `echo` project directory, we use `blinker` as our template. We need to copy `bin/`, `cabal.project`, and `blinker.cabal`, along with `Makefile_generic` and `pcf_generic` and rename the package to `echo`.
+```console
+foo@bar:~/VELDT-getting-started/demo$ mkdir echo && cd echo
+foo@bar:~/VELDT-getting-started/demo/echo$ cp -r ../blinker/bin/ .
+foo@bar:~/VELDT-getting-started/demo/echo$ cp ../blinker/cabal.project .
+foo@bar:~/VELDT-getting-started/demo/echo$ cp ../blinker/blinker.cabal echo.cabal
+foo@bar:~/VELDT-getting-started/demo/echo$ cp ../Makefile_generic Makefile
+foo@bar:~/VELDT-getting-started/demo/echo# cp ../pcf_generic Echo.pcf
+```
+Update the `cabal.project` file to use our `echo.cabal` file. Your `cabal.project` file should look similar:
+```
+packages:
+  echo.cabal,
+  ../../veldt/veldt.cabal
+
+package clash-prelude
+  -- 'large-tuples' generates tuple instances for various classes up to the
+  -- GHC imposed maximum of 62 elements. This severely slows down compiling
+  -- Clash, and triggers Template Haskell bugs on Windows. Hence, we disable
+  -- it by default. This will be the default for Clash >=1.4.
+  flags: -large-tuples
+```
+
+Update the `echo.cabal` file and replace the blinker package name with echo, be sure to update the exposed module to `Echo` as well. Your `echo.cabal` file should look similar:
+```
+cabal-version:       2.4
+name:                echo
+version:             0.1.0.0
+license-file:        LICENSE
+author:              Standard Semiconductor
+maintainer:          standard.semiconductor@gmail.com
+extra-source-files:  CHANGELOG.md
+
+common common-options
+  default-extensions:
+    BangPatterns
+    BinaryLiterals
+    ConstraintKinds
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    NoStarIsType
+    PolyKinds
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    ViewPatterns
+
+    -- TemplateHaskell is used to support convenience functions such as
+    -- 'listToVecTH' and 'bLit'.
+    TemplateHaskell
+    QuasiQuotes
+
+    -- Prelude isn't imported by default as Clash offers Clash.Prelude
+    NoImplicitPrelude
+  ghc-options:
+    -Wall -Wcompat
+
+    -- Plugins to support type-level constraint solving on naturals
+    -fplugin GHC.TypeLits.Extra.Solver
+    -fplugin GHC.TypeLits.Normalise
+    -fplugin GHC.TypeLits.KnownNat.Solver
+
+    -- Clash needs access to the source code in compiled modules
+    -fexpose-all-unfoldings
+
+    -- Worker wrappers introduce unstable names for functions that might have
+    -- blackboxes attached for them. You can disable this, but be sure to add
+    -- a no-specialize pragma to every function with a blackbox.
+    -fno-worker-wrapper
+  default-language: Haskell2010
+  build-depends:
+    base,
+    Cabal,
+    mtl,
+    lens,
+    interpolate,
+    veldt,
+    
+    -- clash-prelude will set suitable version bounds for the plugins
+    clash-prelude >= 1.2.2 && < 1.4,
+    ghc-typelits-natnormalise,
+    ghc-typelits-extra,
+    ghc-typelits-knownnat
+                     
+library
+        import: common-options
+        exposed-modules: Echo
+        default-language: Haskell2010
+
+-- Builds the executable 'clash', with echo in scope
+executable clash
+  main-is: bin/Clash.hs
+  Build-Depends: base, clash-ghc, echo
+  if !os(Windows)
+    ghc-options: -dynamic
+
+-- Builds the executable 'clashi', with echo in scope
+executable clashi
+  main-is: bin/Clashi.hs
+  if !os(Windows)
+    ghc-options: -dynamic
+  build-depends: base, clash-ghc, echo
+```
+Finally, update `Makefile`, we will call our toplevel module `Echo`. Your `Makefile` should look similar:
+```make
+TOP := Echo
+
+all: $(TOP).bin
+
+$(TOP).bin: $(TOP).asc
+	icepack $< $@
+
+$(TOP).asc: $(TOP).json $(TOP).pcf 
+	nextpnr-ice40 --up5k --package sg48 --pcf $(TOP).pcf --asc $@ --json $<
+
+$(TOP).json: $(TOP).hs
+	cabal run clash --write-ghc-environment-files=always -- $(TOP) --verilog
+	yosys -q -p "synth_ice40 -top $(TOP) -json $@ -abc2" verilog/$(TOP)/$(TOP)/*.v
+
+prog: $(TOP).bin
+	iceprog $<
+
+build: $(TOP).hs
+	cabal build $<
+
+clean:
+	rm -rf verilog/
+	rm -f $(TOP).json
+	rm -f $(TOP).asc
+	rm -f $(TOP).bin
+	rm -f *~
+	rm -f *.hi
+	rm -f *.o
+	rm -f *.dyn_hi
+	rm -f *.dyn_o
+
+clean-all:
+	$(MAKE) clean
+	cabal clean
+
+.PHONY: all clean clean-all prog build
+```
+Create the `Echo.hs` source file and then open it with your favorite text editor.
+Let's begin with declaring the module, imports and a language extension:
+```haskell
+{-# LANGUAGE LambdaCase #-}
+module Echo where
+
+import Clash.Prelude
+import Clash.Annotations.TH
+import Control.Monad.RWS
+import Control.Lens
+import qualified Veldt.Uart as U
+```
+First, we use [`LambdaCase`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) which saves a few keystrokes when doing case analysis on the finite-state machine. Next we define the module and declare imports. We have used most of these imports before so I will not go into detail but note we import `Veldt.Uart` as `qualified`, so anytime we want to use something from our Uart module we need to prefix it with `U.`. This is a stylistic choice, though it can help organize imports and avoid any overlapping function or type names.
+
+Our echo demo first read a byte, then write that same byte. We will need three stateful elements:
+  1. The FSM which indicates whether we are currently reading a byte or writing a byte.
+  2. The UART state.
+  3. A byte to save between reads and writes.
+
+Let's define our state space:
+```haskell
+data Fsm = Read | Write
+  deriving (Generic, NFDataX)
+
+data Echo = Echo
+  { _byte :: BitVector 8
+  , _uart :: U.Uart
+  , _fsm  :: Fsm
+  } deriving (Generic, NFDataX)
+makeLenses ''Echo
+
+mkEcho :: Echo
+mkEcho = Echo
+  { _byte = 0
+  , _uart = U.mkUart 624
+  , _fsm  = Read
+  }
+```
+We also declare a smart constructor `mkEcho` which initializes our state. It's pretty straightforward but I want to focus on how we chose `624` when constructing the UART; it is integral to the correct functioning and timing of the UART. We will be running the demo with a clock frequency of 12Mhz and the desired baud rate is 19200. 12 000 000 / 19 200 = 625, so we count from 0 - 624 inclusive between bit samples. The key is to select a baud rate which is compatible with the clock frequency. 12Mhz and 19 200  are compatible because 19 200 divides 12 000 000 without remainder. In reality UART can handle a slight mismatch, but it must remain under a certain threshold.
+
+Now that we have our types, let's implement the echo:
+```haskell
+echoM :: RWS U.Rx U.Tx Echo ()
+echoM = use fsm >>= \case
+  Read -> do
+    rM <- zoom uart U.read
+    forM_ rM $ \r -> do
+      byte .= r
+      fsm .= Write
+  Write -> do
+    w <- use byte
+    done <- zoom uart $ U.write w
+    when done $ fsm .= Read
+```
+First we do case analysis on the `fsm` value.
+  1. `Read`: `U.read` returns a `Maybe (BitVector 8)`. When it is a `Just r` value (meaning the read is complete), we save `r` in `byte` and update the `fsm` to `Write`.
+  2. `Write`: First get the `byte` then write it. `U.write` returns a `Bool` which indicates the status of the write. When `done` is `True`, we know the UART write has completed and we set the `fsm` to `Read`.
+
+Now we run `echoM` and lift it into the `Signal` domain:
+```haskell
+echo
+  :: HiddenClockResetEnable dom
+  => Signal dom Bit
+  -> Signal dom Bit
+echo = echoMealy <^> mkEcho
+  where
+    echoMealy s i = let ((), s', tx) = runRWS echoM (U.Rx i) s
+                    in (s', U.unTx tx)
+```
+[`<^>`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:-60--94--62-) takes two arguments:
+  1. the transfer function `s -> i -> (s, o)`
+  2. the initial state
+It returns a function `Signal dom i -> Signal dom o`. The initial state is just `mkEcho`. The transfer function is `echoMealy` which runs `echoM` with [`runRWS :: RWS r w s a -> r -> s -> (a, s, w)`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) then reformats the output to fit the transfer function type. Note we also wrap rx and tx with their respective newtypes.
+
+Finally we define the `topEntity`:
+```haskell
+{-# NOINLINE topEntity #-}
+topEntity
+  :: "clk" ::: Clock XilinxSystem
+  -> "rx"  ::: Signal XilinxSystem Bit
+  -> "tx"  ::: Signal XilinxSystem Bit
+topEntity clk = withClockResetEnable clk rst enableGen echo
+  where
+    rst = unsafeFromHighPolarity $ pure False
+makeTopEntityWithName 'topEntity "Echo"
+```
+We annotate the inputs and outputs for easy usage with our pin constraint file. Additionally, `makeTopEntityWithName` from `Clash.Annotations.TH` automatically annotates our function with specified input, output, and module names.
+
+Next, edit the `Echo.pcf` file to match our `topEntity` declaration. We only need three pins so we remove the ones we don't need. The `generic_pcf.pcf` which we copied from has all the pins and helpful comments to discern their function. We need pin 35 `12Mhz Xtal` (12Mhz crystal oscillator) for `clk`. We need pin 17 for `tx` and pin 15 for `rx`. Note `#` starts a comment.
+Your `Echo.pcf` file should look similar:
+```
+set_io tx 17 # iob_33b_spi_wi  ice_bowi uart_tx
+set_io rx 15 # iob_34a_spi_wck ice_wck  uart_rx
+
+set_io clk 35 # iot_46b_g0 12Mhz Xtal
+```
+You can view the [Functional Diagram](https://github.com/standardsemiconductor/VELDT-info/blob/master/functional-diagram.pdf) of the VELDT board to understand how these pins connect ot the rest of the board.
+
+Before we test out our demo, we need a way to communicate with the VELDT from our computer via UART. For this demo we use Minicom, a text-based serial port communications program though any serial communcations program should work; just make sure it is configured with the correct port, protocol and baud rate!
+
+First install minicom:
+```console
+foo@bar:~$ sudo apt install -y minicom
+```
+Now we need to discover the name of the serial port.
+```console
+foo@bar:~$ ls /dev/
+```
+This should list the computer devices. Look at the devices prefixed by `tty`. We will now plug in the VELDT then reissue `ls /dev/` and you should see a new device, we will need the name of the new device when we setup minicom. For example, on my computer the VELDT shows up as `ttyUSB0`.
+Now plug in the VELDT to your computer via USB port.
+```console
+foo@bar:~$ ls /dev/
+```
+Locate the name of the device.
+
+Now we can setup minicom:
+```console
+foo@bar:~$ sudo minicom -s
+```
+This should bring you into the minicom setup. Use the arrow keys to select `Serial port setup`. Press `Enter`. Make sure `Serial Device` matches the device we just found, if not press `a` then type `/dev/YOURDEVICEHERE`, on my computer it is `/dev/ttyUSB0`. Next make sure `Bps/Par/Bits` is set to `19200 8N1`. If not, press `e`, then use `a` or `b` to set the `Speed` to `19200`. Then press `q` to set the parity and data to `8N1`. Press enter when finished. Then press enter again to finish serial port setup. Use the arrow keys to select `Screen and Keyboard`. To make things easier, we want to set `Local Echo` to `Yes` by toggling `q`, and set `Line Wrap` to `Yes` by toggling `r`. Press enter to finish. Finally use the arrow keys to select `Save setup as dfl`, which saves this setup as the default setup. Now `Exit from Minicom`.
+
+It's time to run our demo! Make sure the VELDT is plugged in via USB. The power switch (white) should be `ON`, the program switch (black) should be `FLASH`. The power indicator LED should be illuminated red.
+```console
+foo@bar:~/VELDT-getting-started/demo/echo$ make prog
+```
+You should see a similar device utilisation:
+```
+Info: Device utilisation:
+Info: 	         ICESTORM_LC:   178/ 5280     3%
+Info: 	        ICESTORM_RAM:     0/   30     0%
+Info: 	               SB_IO:     3/   96     3%
+Info: 	               SB_GB:     4/    8    50%
+Info: 	        ICESTORM_PLL:     0/    1     0%
+Info: 	         SB_WARMBOOT:     0/    1     0%
+Info: 	        ICESTORM_DSP:     0/    8     0%
+Info: 	      ICESTORM_HFOSC:     0/    1     0%
+Info: 	      ICESTORM_LFOSC:     0/    1     0%
+Info: 	              SB_I2C:     0/    2     0%
+Info: 	              SB_SPI:     0/    2     0%
+Info: 	              IO_I3C:     0/    2     0%
+Info: 	         SB_LEDDA_IP:     0/    1     0%
+Info: 	         SB_RGBA_DRV:     0/    1     0%
+Info: 	      ICESTORM_SPRAM:     0/    4     0%
+```
+Likewise with max clock frequency; most importantly it should say `PASS at 12.00 MHz`:
+```
+Info: Max frequency for clock 'clk$SB_IO_IN_$glb_clk': 65.82 MHz (PASS at 12.00 MHz)
+```
+When the programming is finished, make sure the CDONE led is illuminated blue. Now toggle the power switch (white), then flip the configuration switch (black) to FPGA.
+Next start minicom:
+```console
+foo@bar:~/VELDT-getting-started/demo/echo$ minicom
+```
+It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! `Ctrl-A x` will exit minicom when you are finished testing out the echo.
+
+This concludes the demo. You can find the project directory [here]().
 ## [Section 4: Pride](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Coming Soon
 ## [Section 5: Where Lions Roam](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
