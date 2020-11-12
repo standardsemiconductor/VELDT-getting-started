@@ -953,7 +953,9 @@ clean-all:
 .PHONY: all clean clean-all prog build
 ```
 
-To end this section, we build, synthesize, place-and-route, pack, and program VELDT. There should be no build errors. Verify your device utilisation looks similar, including usage of SB_RGBA_DRV. Before programming, make sure VELDT is connected to your computer, the power switch is ON, and the mode switch is set to FLASH. After programming, make sure the LED blinks with the correct color order with the intended 2 second period. If the CDONE LED is not illuminated blue, try pressing the reset button and/or toggling the power switch. If you have any issues, questions, or suggestions please open a public issue in this repository or contact us privately at standard.semiconductor@gmail.com.
+To end this section, we build, synthesize, place-and-route, pack, and program VELDT. There should be no build errors. Verify your device utilisation looks similar, including usage of SB_RGBA_DRV.
+
+Before programming, make sure VELDT is connected to your computer, the power switch is ON, and the mode switch is set to FLASH. After programming, make sure the LED blinks with the correct color order with the intended 2 second period. If the CDONE LED is not illuminated blue, try pressing the reset button and/or toggling the power switch. If you have any issues, questions, or suggestions please open a public issue in this repository or contact us privately at standard.semiconductor@gmail.com.
 ```console
 foo@bar:~/VELDT-getting-started/demo/blinker$ make clean-all && make prog
 .....
@@ -975,7 +977,9 @@ Info: 	         SB_RGBA_DRV:     1/    1   100%
 Info: 	      ICESTORM_SPRAM:     0/    4     0%
 .....
 ```
-You can find the blinker demo [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker). Here is a demo video: ![](demo/blinker/blinker.gif)
+You can find the blinker demo [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker). Here is a demo video:
+
+![](demo/blinker/blinker.gif)
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART. Equipped with our UART, we create a demo which echoes its input.
 ### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
