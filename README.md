@@ -1238,7 +1238,7 @@ Building library for veldt-0.1.0.0..
 In the next part we develop a UART.
 
 ### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-Before diving into this section, it maybe be helpful to familiarize yourself with UART by browsing the [Wikipedia page](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter). Let's create a `Uart.hs` file.
+Before diving into this section, it may be helpful to familiarize yourself with UART by browsing the [Wikipedia page](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter). Let's create a `Uart.hs` file.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Uart.hs
 ```
@@ -1341,7 +1341,7 @@ transmit byte = use txFsm >>= \case
 frame :: Byte -> BitVector 10
 frame b = (1 :: BitVector 1) ++# b ++# (0 :: BitVector 1)
 ```
-First we do case analysis on `txFsm`.
+First, we do case analysis on `txFsm`:
   1. If `txFsm` is `TxStart` we `frame` the input byte, transform it into a `Vec` of `Bit`s (note this reverses the bits), then `give` it to the serializer `_txSer`. We also set the counter `_txCtr` to zero, update `txFsm` to the `TxSend` state, and return `False` which indicates the transmit is in progress.
   2. If `txFsm` is `TxSend`, first we `peek` at the current bit to serialize, wrap it in a `Tx` type, then pass it to `tell` which transmits the bit via the writer monad.
 
@@ -1375,7 +1375,9 @@ The receiver is a four-state finite-state machine (FSM). The receiver state has 
   3. a baud counter `_rxCtr`
   4. a fsm `_rxFsm`
 
-Finally we define a smart constructor `mkReceiver` which only takes a baud rate. It intializes the deserializer with direction left `L`, and all bits are zero. It sets the baud rate to the input. The baud counter `_rxCtr` starts at zero and the `_rxFsm` FSM starts in the `RxIdle` state. Next we define and implement the receiver:
+We define a smart constructor `mkReceiver` which only takes a baud rate. It intializes the deserializer with direction left `L`, and all bits are zero. It sets the baud rate to the input. The baud counter `_rxCtr` starts at zero and the `_rxFsm` FSM starts in the `RxIdle` state.
+
+Now we define and implement the receiver:
 ```haskell
 receive :: Monoid w => RWS Rx w Receiver (Maybe Byte)
 receive = use rxFsm >>= \case
@@ -1418,7 +1420,7 @@ receive = use rxFsm >>= \case
       zoom rxCtr $ C.incrementUnless (== baud)
       return ctrDone
 ```
-First, note the `countBaud` function, it gets the baud rate `_rxBaud` and checks if it is equal to `_rxCtr`, binding the result to `ctrDone`. If the counter is not equal to the baud rate, we increment. Finally, the function returns `ctrDone`. This function is used in each of the receiver states to indicate when to sample the RX wire.
+Note the `countBaud` function, it gets the baud rate `_rxBaud` and checks if it is equal to `_rxCtr`, binding the result to `ctrDone`. If the counter is not equal to the baud rate, we increment. Finally, the function returns `ctrDone`. This function is used in each of the receiver states to indicate when to sample the RX wire.
 
 The receiver starts with case analysis on `_rxFsm`: 
   1. `RxIdle` is the initial state. We simply wait until the RX wire goes low. When this happens, the receiver increments it's baud counter and sets `_rxFsm` to `RxStart`. This state always returns `Nothing` because there is no byte received yet.
