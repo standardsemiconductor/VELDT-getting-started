@@ -777,7 +777,7 @@ mkBlinker = Blinker
   , _timer    = C.mkCounter 0
   } 
 ```
-The blinker needs a color counter, three PWMs (one to drive each RGB signal), and a timer which will indicate when the color should change. We also create the `mkBlinker` smart constructor which initializes the color to `Off` and sets each PWM duty cycle to `0` and the timer to `0`. We derive `Eq`, `Bounded` and `Enum` (along with the usual `NFDataX` and `Generic`) for `Color` so we can make it into a counter. For example, if we want to change the color from Red to Green, we can use `increment`. Remember `increment` also respects bounds, so incrementing the color `White` just wraps back around to `Off`.
+The blinker needs a color counter, three PWMs (one to drive each RGB signal), and a timer which will indicate when the color should change. We also create the `mkBlinker` smart constructor which initializes the color to `Red` and sets the red PWM duty cycle to `0xFF` with the other PWM duty cycles to `0` and the timer to `0`. We derive `Eq`, `Bounded` and `Enum` (along with the usual `NFDataX` and `Generic`) for `Color` so we can make it into a counter. For example, if we want to change the color from Red to Green, we can use `increment`. Remember `increment` also respects bounds, so incrementing the color `Blue` just wraps back around to `Red`.
 
 Next, we create a `toPWM` function to convert a `Color` into its RGB triple which we use to set the PWM duty cycles.
 ```haskell
@@ -971,7 +971,7 @@ Info: 	         SB_RGBA_DRV:     1/    1   100%
 Info: 	      ICESTORM_SPRAM:     0/    4     0%
 .....
 ```
-You can find the blinker demo [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker).
+You can find the blinker demo [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker). Here is a demo video: ![](demo/blinker/blinker.gif)
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART. Equipped with our UART, we create a demo which echoes its input.
 ### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
