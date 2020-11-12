@@ -981,7 +981,7 @@ You can find the blinker demo [here](https://github.com/standardsemiconductor/VE
 
 ![](demo/blinker/blinker.gif)
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART. Equipped with our UART, we create a demo which echoes its input.
+In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART (Universal Asynchronous Receiver Transmitter). Equipped with our UART, we create a demo which echoes its input.
 ### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Let's begin by creating a file `Serial.hs` in the `Veldt` directory.
 ```console
@@ -1807,7 +1807,7 @@ import Control.Monad.RWS
 import Control.Lens
 import qualified Veldt.Uart as U
 ```
-First, we use [`LambdaCase`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) which saves a few keystrokes when doing case analysis on the finite-state machine. Next we define the module and declare imports. We have used most of these imports before so I will not go into detail but note we import `Veldt.Uart` as `qualified`, so anytime we want to use something from our Uart module we need to prefix it with `U.`. This is a stylistic choice, though it can help organize imports and avoid any overlapping function or type names.
+First, we use [`LambdaCase`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) which saves a few keystrokes when doing case analysis on the finite-state machine. Next, we define the module and declare imports. We have used most of these imports before so I will not go into detail but note we import `Veldt.Uart` as `qualified`, so anytime we want to use something from our Uart module we need to prefix it with `U.`. This is a stylistic choice, though it can help organize imports and avoid any overlapping function or type names.
 
 Our echo demo reads a byte, then writes that same byte. We will need three stateful elements:
   1. The FSM which indicates whether we are currently reading a byte or writing a byte.
@@ -1948,4 +1948,6 @@ foo@bar:~/VELDT-getting-started/demo/echo$ minicom
 ```
 It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! `Ctrl-A x` will exit minicom when you are finished testing out the echo.
 
-This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo).
+This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo). Here is a demo video:
+
+![](demo/echo/echo.gif)
