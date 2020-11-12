@@ -1912,7 +1912,7 @@ Now we can setup minicom:
 ```console
 foo@bar:~$ sudo minicom -s
 ```
-This should bring you into the minicom setup. Use the arrow keys to select `Serial port setup`. Press `Enter`. Make sure `Serial Device` matches the device we just found, if not press `a` then type `/dev/YOURDEVICEHERE` followed by `Enter`, on my computer it is `/dev/ttyUSB0`. Next make sure `Bps/Par/Bits` is set to `19200 8N1`. If not, press `e`, then use `a` or `b` to set the `Speed` to `19200`. Then press `q` to set the parity and data to `8N1`. Press enter when finished. Then press enter again to finish serial port setup. Use the arrow keys to select `Screen and Keyboard`. To make things easier, we want to set `Local Echo` to `Yes` by toggling `q`, and set `Line Wrap` to `Yes` by toggling `r`. Press enter to finish. Finally use the arrow keys to select `Save setup as dfl`, which saves this setup as the default setup. Now `Exit from Minicom`.
+This should bring you into the minicom setup. Use the arrow keys to select `Serial port setup`. Press <kbd>Enter</kbd>. Make sure `Serial Device` matches the device we just found, if not press <kbd>a</kbd> then type `/dev/YOURDEVICEHERE` followed by <kbd>Enter</kbd>, on my computer it is `/dev/ttyUSB0`. Next make sure `Bps/Par/Bits` is set to `19200 8N1`. If not, press <kbd>e</kbd>, then use <kbd>a</kbd> or <kbd>b</kbd> to set the `Speed` to `19200`. Then press <kbd>q</kbd> to set the parity and data to `8N1`. Press <kbd>Enter</kbd> when finished. Then press <kbd>Enter</kbd> again to finish serial port setup. Use the arrow keys to select `Screen and Keyboard`. To make things easier, we want to set `Local Echo` to `Yes` by toggling <kbd>q</kbd>, and set `Line Wrap` to `Yes` by toggling <kbd>r</kbd>. Press enter to finish. Finally use the arrow keys to select `Save setup as dfl`, which saves this setup as the default setup. Now `Exit from Minicom`.
 
 It's time to run our demo! Make sure the VELDT is plugged in via USB. The power switch (white) should be `ON`, the program switch (black) should be `FLASH`. The power indicator LED should be illuminated red.
 ```console
@@ -1946,7 +1946,7 @@ Next start minicom:
 ```console
 foo@bar:~/VELDT-getting-started/demo/echo$ minicom
 ```
-It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! `Ctrl-A x` will exit minicom when you are finished testing out the echo.
+It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! <kbd>Ctrl-A</kbd> <kbd>x</kbd> will exit minicom when you are finished testing out the echo.
 
 This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo). Here is a demo video:
 
