@@ -69,7 +69,7 @@ data Serializer n a = Serializer
 makeLenses ''Serializer
 
 mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
-mkSerializer a = Serializer (repeat a) False (C.mkCounter 0) 
+mkSerializer a = Serializer (repeat a) True (C.mkCounter 0) 
 
 serialize :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer n a) m ()
 serialize = do

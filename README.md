@@ -1024,7 +1024,7 @@ import qualified Veldt.Counter as C
 With a deserializer we are able to:
   1. construct it with `mkDeserializer`
   2. check if it is full
-  3. `deserialize` data, shifting it onto either the front or back of the vector depending on the direction and incrementing the counter.
+  3. `deserialize` data, shifting it into the vector and incrementing the counter.
   4. `get` the `Vec` of elements of the deserializer
   5. `clear` the full flag and reset the counter
 
@@ -1041,7 +1041,7 @@ data Direction = L | R
   deriving (NFDataX, Generic)
 ```
 
-First we start with defining a deserializer state parametrizable by its size and the type it can "buffer" along with a smart constructor.
+We start with defining a deserializer state parameterized by its size and the type it can "buffer" along with a smart constructor.
 ```haskell
 data Deserializer n a = Deserializer
   { _dBuf  :: Vec n a
@@ -1098,9 +1098,9 @@ data Serializer n a = Serializer
 makeLenses ''Serializer
 
 mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
-mkSerializer a = Serializer (repeat a) False (C.mkCounter 0) 
+mkSerializer a = Serializer (repeat a) True (C.mkCounter 0) 
 ```
-The serializer state type is similar the deserializer except the `Bool` flag tracks when the serializer is empty (as opposed to full in the deserializer).
+The serializer state type is similar to the deserializer except the `Bool` flag tracks when the serializer is empty (as opposed to full in the deserializer).
 
 Let's implement the serializer interface `serialize`, `peek`, `give`, and `empty`:
 ```haskell
@@ -1201,7 +1201,7 @@ data Serializer n a = Serializer
 makeLenses ''Serializer
 
 mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
-mkSerializer a = Serializer (repeat a) False (C.mkCounter 0) 
+mkSerializer a = Serializer (repeat a) True (C.mkCounter 0) 
 
 serialize :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer n a) m ()
 serialize = do
