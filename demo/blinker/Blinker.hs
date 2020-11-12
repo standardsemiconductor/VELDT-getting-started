@@ -10,7 +10,7 @@ import qualified Veldt.Ice40.Rgb as R
 
 type Byte = BitVector 8
 
-data Color = Off | Red | Green | Blue | White
+data Color = Red | Green | Blue
   deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
@@ -24,19 +24,17 @@ makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = C.mkCounter Off
-  , _redPWM   = P.mkPWM 0
+  { _color    = C.mkCounter Red
+  , _redPWM   = P.mkPWM 0xFF
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
   , _timer    = C.mkCounter 0
   }
 
 toPWM :: Color -> (Byte, Byte, Byte)
-toPWM Off   = (0,    0,    0   )
 toPWM Red   = (0xFF, 0,    0   )
 toPWM Green = (0,    0xFF, 0   )
 toPWM Blue  = (0,    0,    0xFF)
-toPWM White = (0xFF, 0xFF, 0xFF)
 
 blinkerM :: RWS r () Blinker R.Rgb
 blinkerM = do

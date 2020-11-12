@@ -17,7 +17,7 @@
 ## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 This is an opinionated guide to hardware design from first principles using Haskell and VELDT.  We assume you are using the [VELDT FPGA development board](https://www.standardsemiconductor.com) available to order from [Amazon](https://www.amazon.com/dp/B08F9T8DFT?ref=myi_title_dp). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
   
-The code included in the examples is written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find desiging hardware with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot. As hardware designs scale so too does the language and the ability to abstractly compose machines makes designing them a blast! Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools.
+The code included in the examples is written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find hardware design with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot. As hardware designs scale so too does the language and the ability to abstractly compose machines which makes designing them a blast! Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools.
   
 We use the Project IceStorm flow for synthesis, routing, and programming. These are excellent, well-maintained open source tools. For installation and setup instructions visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#project-icestorm) repo.
 
@@ -28,7 +28,7 @@ By the end of the guide, you will have a library of commonly used sub-components
 Finally, if you have any suggestions, comments, discussions, edits additions etc. please open an issue in this repo. We value any and all contributions. Let's get started!
 
 ## [Section 2: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-In this section we start by building a counter. Then using the counter, construct a PWM. Equipped with our counter and PWM, we use the RGB LED Driver IP to create our first running application on VELDT; a blinker!
+In this section we start by building a counter then, using the counter, construct a PWM. Equipped with our counter and PWM, we use the RGB LED Driver IP to create our first running application on VELDT; a blinker!
 
 ### [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 We begin by creating a directory called "veldt" to contain our haskell library:
@@ -618,7 +618,7 @@ Building library for veldt-0.1.0.0..
 You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We now move onto creating a blinker.
 
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-This is our first demo, we will use our PWM to blink an LED; starting with the LED off, it will light up red, green, blue, white then cycle back to off. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal.
+This is our first demo, we will use our PWM to blink an LED; it will light up red, green, blue, then cycle back to red. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal:
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir -p demo/blinker && cd demo/blinker
 ```
@@ -756,7 +756,7 @@ Let's define some types to get a feel for the state space.
 ```haskell
 type Byte = BitVector 8
 
-data Color = Off | Red | Green | Blue | White
+data Color = Red | Green | Blue
   deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
@@ -770,8 +770,8 @@ makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = C.mkCounter Off
-  , _redPWM   = P.mkPWM 0
+  { _color    = C.mkCounter Red
+  , _redPWM   = P.mkPWM 0xFF
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
   , _timer    = C.mkCounter 0
@@ -782,11 +782,9 @@ The blinker needs a color counter, three PWMs (one to drive each RGB signal), an
 Next, we create a `toPWM` function to convert a `Color` into its RGB triple which we use to set the PWM duty cycles.
 ```haskell
 toPWM :: Color -> (Byte, Byte, Byte)
-toPWM Off   = (0,    0,    0   )
 toPWM Red   = (0xFF, 0,    0   )
 toPWM Green = (0,    0xFF, 0   )
 toPWM Blue  = (0,    0,    0xFF)
-toPWM White = (0xFF, 0xFF, 0xFF)
 ```
 The next function `blinkerM` is the core of our demo. Here is the implementation.
 ```haskell
@@ -844,7 +842,7 @@ import qualified Veldt.Ice40.Rgb as R
 
 type Byte = BitVector 8
 
-data Color = Off | Red | Green | Blue | White
+data Color = Red | Green | Blue
   deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
@@ -858,19 +856,17 @@ makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = C.mkCounter Off
-  , _redPWM   = P.mkPWM 0
+  { _color    = C.mkCounter Red
+  , _redPWM   = P.mkPWM 0xFF
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
   , _timer    = C.mkCounter 0
   }
 
 toPWM :: Color -> (Byte, Byte, Byte)
-toPWM Off   = (0,    0,    0   )
 toPWM Red   = (0xFF, 0,    0   )
 toPWM Green = (0,    0xFF, 0   )
 toPWM Blue  = (0,    0,    0xFF)
-toPWM White = (0xFF, 0xFF, 0xFF)
 
 blinkerM :: RWS r () Blinker R.Rgb
 blinkerM = do
