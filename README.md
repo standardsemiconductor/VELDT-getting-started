@@ -424,12 +424,12 @@ pwm = do
   zoom ctr C.increment
   return $ boolToBit $ c < d
 ```
-To end this part, we clean and rebuild the library. You should not see any errors.
+To end this part, we rebuild the library. You should not see any errors.
 ```console
-foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
+foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ...
-[1 of 2] Compiling Veldt.Counter    ...
-[2 of 2] Compiling Veldt.PWM        ...
+[1 of 2] Compiling Veldt.Counter ...
+[2 of 2] Compiling Veldt.PWM     ...
 ```
 You can find the full PWM source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP.
 
@@ -607,9 +607,9 @@ rgb rgbPWM = let (r, g, b) = unbundle rgbPWM
              in rgbPrim "0b0" "0b111111" "0b111111" "0b111111" r g b
 ```
 
-To end this part, we clean and rebuild the library. You should not see any errors.
+To end this part, we rebuild the library. You should not see any errors.
 ```console
-foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
+foo@bar:~/VELDT-getting-started/veldt$ cabal build
 Building library for veldt-0.1.0.0..
 [1 of 3] Compiling Veldt.Counter    ...
 [2 of 3] Compiling Veldt.Ice40.Rgb  ...
@@ -1217,9 +1217,9 @@ give v = do
 empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
 empty = use sEmpty
 ```
-To end this part, clean and rebuild the library. There should not be any errors.
+To end this part, we rebuild the library. There should not be any errors.
 ```console
-foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
+foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ...
 Building library for veldt-0.1.0.0..
 [1 of 4] Compiling Veldt.Counter ...
@@ -1614,9 +1614,9 @@ read = zoom receiver receive
 write :: Byte -> RWS r Tx Uart Bool
 write = zoom transmitter . transmit
 ```
-To end this part, clean and rebuild the library. There should not be any errors.
+To end this part, we rebuild the library. There should not be any errors.
 ```console
-foo@bar:~/VELDT-getting-started/veldt$ cabal clean && cabal build
+foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ...
 Building library for veldt-0.1.0.0..
 [1 of 4] Compiling Veldt.Counter ...
