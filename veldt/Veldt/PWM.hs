@@ -8,7 +8,7 @@ module Veldt.PWM
 import Clash.Prelude
 import Control.Lens
 import Control.Monad.RWS
-import qualified Veldt.Counter as C
+import Veldt.Counter
 
 ---------
 -- PWM --
@@ -31,7 +31,7 @@ pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
 pwm = do
   d <- use duty
   c <- use ctr
-  ctr %= C.increment
+  ctr %= increment
   return $ boolToBit $ c < d
 
   
