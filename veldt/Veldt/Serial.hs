@@ -30,13 +30,13 @@ data Direction = L | R
 data Deserializer n a = Deserializer
   { _dBuf  :: Vec n a
   , _dFull :: Bool
-  , _dCtr  :: C.Counter (Index n)
+  , _dCtr  :: Index n
   , _dDir  :: Direction
   } deriving (NFDataX, Generic)
 makeLenses ''Deserializer
 
 mkDeserializer :: KnownNat n => a -> Direction -> Deserializer n a
-mkDeserializer a = Deserializer (repeat a) False (C.mkCounter 0)
+mkDeserializer a = Deserializer (repeat a) False 0
 
 full :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m Bool
 full = use dFull
@@ -46,8 +46,8 @@ deserialize d = do
   use dDir >>= \case
     R -> dBuf %= (<<+ d)
     L -> dBuf %= (d +>>)
-  dFull <~ zoom dCtr (C.gets (== maxBound))
-  zoom dCtr C.increment
+  dFull <~ uses dCtr (== maxBound)
+  dCtr %= C.increment
     
 get :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m (Vec n a)
 get = use dBuf
@@ -55,7 +55,7 @@ get = use dBuf
 clear :: (Monoid w, Monad m, KnownNat n) => RWST r w (Deserializer n a) m ()
 clear = do
   dFull .= False
-  zoom dCtr $ C.set 0
+  dCtr .= 0
 
 ----------------
 -- Serializer --
@@ -63,21 +63,21 @@ clear = do
 data Serializer n a = Serializer
   { _sBuf   :: Vec n a
   , _sEmpty :: Bool
-  , _sCtr   :: C.Counter (Index n)
+  , _sCtr   :: Index n
   , _sDir   :: Direction
   } deriving (NFDataX, Generic)
 makeLenses ''Serializer
 
 mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
-mkSerializer a = Serializer (repeat a) True (C.mkCounter 0) 
+mkSerializer a = Serializer (repeat a) True 0
 
 serialize :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer n a) m ()
 serialize = do
   use sDir >>= \case
     R -> sBuf %= (`rotateRightS` d1)
     L -> sBuf %= (`rotateLeftS`  d1)
-  sEmpty <~ zoom sCtr (C.gets (== maxBound))
-  zoom sCtr C.increment
+  sEmpty <~ uses sCtr (== maxBound)
+  sCtr %= C.increment
 
 peek :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer (n + 1) a) m a
 peek = use sDir >>= \case
@@ -88,7 +88,7 @@ give :: (Monoid w, Monad m, KnownNat n) => Vec n a -> RWST r w (Serializer n a) 
 give v = do
   sBuf .= v
   sEmpty .= False
-  zoom sCtr $ C.set 0
+  sCtr .= 0
 
 empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
 empty = use sEmpty

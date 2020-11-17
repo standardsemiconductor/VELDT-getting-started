@@ -14,21 +14,21 @@ data Color = Red | Green | Blue
   deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
-  { _color    :: C.Counter Color
+  { _color    :: Color
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
-  , _timer    :: C.Counter (Index 24000000)
+  , _timer    :: Index 24000000
   } deriving (NFDataX, Generic)
 makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = C.mkCounter Red
+  { _color    = Red
   , _redPWM   = P.mkPWM 0xFF
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
-  , _timer    = C.mkCounter 0
+  , _timer    = 0
   }
 
 toPWM :: Color -> (Byte, Byte, Byte)
@@ -41,10 +41,10 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- zoom timer $ C.gets (== maxBound)
-  zoom timer C.increment
+  timerDone <- uses timer (== maxBound)
+  timer %= C.increment
   when timerDone $ do
-    c' <- zoom color $ C.increment >> C.get
+    c' <- color <%= C.increment
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
     zoom greenPWM $ P.setDuty greenDuty'

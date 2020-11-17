@@ -36,7 +36,7 @@ data TxFsm = TxStart | TxSend
 data Transmitter = Transmitter
   { _txSer  :: S.Serializer 10 Bit
   , _txBaud :: Unsigned 16
-  , _txCtr  :: C.Counter (Unsigned 16)
+  , _txCtr  :: Unsigned 16
   , _txFsm  :: TxFsm
   }
   deriving (NFDataX, Generic)
@@ -46,7 +46,7 @@ mkTransmitter :: Unsigned 16 -> Transmitter
 mkTransmitter b = Transmitter
   { _txSer  = S.mkSerializer 0 S.R
   , _txBaud = b
-  , _txCtr  = C.mkCounter 0
+  , _txCtr  = 0
   , _txFsm  = TxStart
   }
 
@@ -54,14 +54,14 @@ transmit :: Byte -> RWS r Tx Transmitter Bool
 transmit byte = use txFsm >>= \case
   TxStart -> do
     zoom txSer $ S.give $ bv2v $ frame byte
-    zoom txCtr $ C.set 0
+    txCtr .= 0
     txFsm .= TxSend
     return False
   TxSend -> do
     zoom txSer S.peek >>= tell . Tx
     baud <- use txBaud
-    ctrDone <- zoom txCtr $ C.gets (== baud)
-    zoom txCtr $ C.incrementUnless (== baud)
+    ctrDone <- uses txCtr (== baud)
+    txCtr %= C.incrementUnless (== baud)
     if ctrDone
       then do
         zoom txSer S.serialize
@@ -82,7 +82,7 @@ data RxFsm = RxIdle | RxStart | RxRecv | RxStop
 data Receiver = Receiver
   { _rxDes  :: S.Deserializer 8 Bit
   , _rxBaud :: Unsigned 16
-  , _rxCtr  :: C.Counter (Unsigned 16)
+  , _rxCtr  :: Unsigned 16
   , _rxFsm  :: RxFsm
   }
   deriving (NFDataX, Generic)
@@ -92,7 +92,7 @@ mkReceiver :: Unsigned 16 -> Receiver
 mkReceiver b = Receiver
   { _rxDes  = S.mkDeserializer 0 S.L
   , _rxBaud = b
-  , _rxCtr  = C.mkCounter 0
+  , _rxCtr  = 0
   , _rxFsm  = RxIdle
   }
 
@@ -101,14 +101,14 @@ receive = use rxFsm >>= \case
   RxIdle ->  do
     rxLow <- asks $ (== low) . unRx
     when rxLow $ do
-      zoom rxCtr C.increment
+      rxCtr %= C.increment
       rxFsm .= RxStart
     return Nothing
   RxStart -> do
     rxLow <- asks $ (== low) . unRx
     baudHalf <- uses rxBaud (`shiftR` 1) 
-    ctrDone <- zoom rxCtr $ C.gets (== baudHalf)
-    zoom rxCtr $ C.incrementUnless (== baudHalf)
+    ctrDone <- uses rxCtr (== baudHalf)
+    rxCtr %= C.incrementUnless (== baudHalf)
     when ctrDone $ if rxLow
       then rxFsm .= RxRecv
       else rxFsm .= RxIdle
@@ -133,8 +133,8 @@ receive = use rxFsm >>= \case
   where
     countBaud = do
       baud <- use rxBaud
-      ctrDone <- zoom rxCtr $ C.gets (== baud)
-      zoom rxCtr $ C.incrementUnless (== baud)
+      ctrDone <- uses rxCtr (== baud)
+      rxCtr %= C.incrementUnless (== baud)
       return ctrDone
 
 ----------
