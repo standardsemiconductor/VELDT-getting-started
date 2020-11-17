@@ -164,153 +164,74 @@ foo@bar:~/VELDT-getting-started/veldt/Veldt$ touch Counter.hs
 Open `Counter.hs` in your favorite editor. Let's name the module, list the exports and import some useful packages:
 ```haskell
 module Veldt.Counter
-  ( Counter
-  , mkCounter
-  , increment
+  ( increment
   , incrementWhen
   , incrementUnless
   , decrement
-  , set
-  , get
-  , gets
   ) where
 
 import Clash.Prelude
-import Control.Monad.RWS (RWST)
-import qualified Control.Monad.RWS as RWS
 ```
-The exported types and functions define the API for our counter. We want to be able to `increment`, `decrement`, `set`, or `get` the counter value. Additionally, we provide `gets` (`get` with a projection) and conditional increment functions `incrementWhen` and `incrementUnless`. Often when designing a new module, you won't know beforehand what the "right" API should look like. That's OK, start by writing what you think it should look like, then refactor as needed. The APIs shown throughout this guide were "found" over many months of rewrites and refactoring as the modules were used and combined in different ways. Even after many months, the APIs still change and the modules become more robust over time. Haskell makes it easy to refactor without fear, just let the types guide you; the compiler is your friend!
+The exported functions define the API for a counter. We want to be able to `increment` and `decrement` the counter. Additionally, we provide conditional increment functions `incrementWhen` and `incrementUnless`. Often when designing a new module, you won't know beforehand what the "right" API should look like. That's OK, start by writing what you think it should look like, then refactor as needed. The APIs shown throughout this guide were "found" over many months of rewrites and refactoring as the modules were used and combined in different ways. Even after many months, the APIs still change and the modules become more robust over time. Haskell makes it easy to refactor without fear, just let the types guide you; the compiler is your friend!
 
-Let's define the counter type, it will be polymorphic so we may use the counter in different contexts with different underlying counter types e.g. `Counter (Index 25)`, `Counter (Unsigned 32)`, or `Counter (BitVector 8)`
+The `increment` function returns the successor of the argument while also wrapping around the maximum bound. If the argument is equal to `maxBound` then return `minBound`; effectively wrapping around the bound. Otherwise, return the successor of the argument using `succ`. The `decrement` function is similar, except the function respects `minBound` and returns the predecessor using `pred`.
 ```haskell
-newtype Counter a = Counter { unCounter :: a }
-  deriving (NFDataX, Generic)
+increment :: (Bounded a, Enum a, Eq a) => a -> a
+increment a
+  | a == maxBound = minBound
+  | otherwise = succ a
+
+decrement :: (Bounded a, Enum a, Eq a) => a -> a
+decrement a 
+  | a == minBound = maxBound
+  | otherwise = pred a
 ```
-Clash requires we derive `NFDataX` and `Generic` for any type which will be stored as state in a register.
+Note, the `increment` and `decrement` functions have typeclass constraints `(Bounded a, Enum a, Eq a)`. The compiler will make sure the argument `a` is an instance of `Bounded`, `Enum`, and `Eq`. The typeclass constraint [`Bounded`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-HaskellPrelude.html#t:Bounded) says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise [`Eq`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-HaskellPrelude.html#t:Eq) lets us compare equality `==` and [`Enum`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-HaskellPrelude.html#t:Enum) provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. 
 
-Next we define a function which constructs a counter. Although very simple, it highlights a style we use throughout the library; functions prefixed with "mk" (short for 'make') are state type constructors, sometimes called "smart constructors".
-```haskell
-mkCounter :: a -> Counter a
-mkCounter = Counter
-```
-
-The rest of the API is monadic. This is an opinion, you don't have to use monads to make a counter, but this guide does. We advise you to explore other styles, techniques and representations. That being said, we choose to represent mealy machines as Reader-Writer-State monads or RWS for short. In order to easily compose monadic functions we use the concrete RWS transformer from [mtl](http://hackage.haskell.org/package/mtl). It has the type `RWST r w s m a`. Although the counter does not use the Reader or Writer types `r` and `w`, other components in the library will and this eases composition, e.g. when we want to make a UART with both a counter and serializer. Let's define some simple functions to access or mutate our counter.
-```haskell
-set :: (Monoid w, Monad m) => a -> RWST r w (Counter a) m ()
-set = RWS.put . Counter
-
-get :: (Monoid w, Monad m) => RWST r w (Counter a) m a
-get = RWS.gets unCounter
-
-gets :: (Monoid w, Monad m) => (a -> b) -> RWST r w (Counter a) m b
-gets f = f <$> get
-```
-They wrap/unwrap the newtype and use the RWST [`RWS.gets`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-State-Class.html#v:gets) and [`RWS.put`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-State-Class.html#v:put) functions to provide access to the underlying counter value with type `a`. We use these accessors to implement the `increment` and `decrement` functions.
-```haskell
-increment :: (Monoid w, Monad m, Bounded a, Enum a, Eq a) => RWST r w (Counter a) m ()
-increment = do
-  c <- get
-  set $ if c == maxBound
-    then minBound
-    else succ c
-
-decrement :: (Monoid w, Monad m, Bounded a, Enum a, Eq a) => RWST r w (Counter a) m ()
-decrement = do
-  c <- get
-  set $ if c == minBound
-    then maxBound
-    else pred c
-```
-Here's the gist: first `get` the current value of the counter. If the value is equal to its maximum (minimum) bound then set the counter to the minimum (maximum) bound. Otherwise, `set` the counter to the value's successor (predecessor). 
-
-The typeclass constraint [`Bounded`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-HaskellPrelude.html#t:Bounded) says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise [`Eq`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-HaskellPrelude.html#t:Eq) lets us compare equality `==` and [`Enum`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-HaskellPrelude.html#t:Enum) provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. Additionally, the RWS Monad `RWST r w s m a` requires `w` to be a `Monoid` and `m` a `Monad`, this will be important later when we "run" our monadic action.
-
-When designing your own counters be careful when using `succ` or `pred`. For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6)`, but `succ (4 :: Index 5)` is undefined and out of bounds (**DO NOT DO THIS**) because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`; that is why we check for `maxBound` and `minBound` states in `increment` and `decrement`.
+When designing your own counter functions be careful when using `succ` or `pred`. For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6)`, but `succ (4 :: Index 5)` is undefined and out of bounds because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`; that is why we check for `maxBound` and `minBound` states in `increment` and `decrement`.
 
 Finally, we use our new `increment` function to implement a conditional increment `incrementWhen` and `incrementUnless`. The former will increment when a predicate is `True`, the latter when `False`.
 ```haskell
-incrementWhen
-  :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
-  => (a -> Bool)
-  -> RWST r w (Counter a) m ()
-incrementWhen p = do
-  b <- gets p
-  if b
-    then increment
-    else set minBound
+incrementWhen :: (Bounded a, Enum a, Eq a) => (a -> Bool) -> a -> a
+incrementWhen p a
+  | p a = increment a
+  | otherwise = minBound
 
-incrementUnless
-  :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
-  => (a -> Bool)
-  -> RWST r w (Counter a) m ()
+incrementUnless :: (Bounded a, Enum a, Eq a) => (a -> Bool) -> a -> a
 incrementUnless p = incrementWhen (not . p)
 ```
-Within `incrementWhen`, we get the counter value and apply our predicate. If the predicate evaluates to `True`, `b` is bound to `True` and we increment the counter. Otherwise, `b` is bound to `False` and we set the value of the counter to its minimum bound. To reduce and reuse code, we implement `incrementUnless` using `incrementWhen` and post-compose `not` to our predicate. Suppose we have `incrementUnless (== 3) :: RWST r w (Counter (Index 8)) m ()`, then the states of the counter would be: ... 0 1 2 3 0 1 2 3 0 1 2 3 ...
+Within `incrementWhen`, we apply our predicate argument `p` to the counter argument `a`. If the predicate evaluates to `True`, we return the incremented the counter value. Otherwise, return the minimum bound. To reduce and reuse code, we implement `incrementUnless` using `incrementWhen` and post-compose `not` to our predicate. Suppose we have `incrementUnless (== 3) :: Index 8 -> Index 8`, then the counter would be incremented if it does NOT equal 3. However, if the counter does equal 3, then the returned value is 0.
 
 Here is our completed counter:
 ```haskell
 module Veldt.Counter
-  ( Counter
-  , mkCounter
-  , increment
+  ( increment
   , incrementWhen
   , incrementUnless
   , decrement
-  , set
-  , get
-  , gets
   ) where
 
 import Clash.Prelude
-import Control.Monad.RWS (RWST)
-import qualified Control.Monad.RWS as RWS
 
 -------------
 -- Counter --
 -------------
-newtype Counter a = Counter { unCounter :: a }
-  deriving (NFDataX, Generic)
+increment :: (Bounded a, Enum a, Eq a) => a -> a
+increment a
+  | a == maxBound = minBound
+  | otherwise = succ a          
 
-mkCounter :: a -> Counter a
-mkCounter = Counter
+decrement :: (Bounded a, Enum a, Eq a) => a -> a
+decrement a
+  | a == minBound = maxBound
+  | otherwise = pred a
 
-set :: (Monoid w, Monad m) => a -> RWST r w (Counter a) m ()
-set = RWS.put . Counter
+incrementWhen :: (Bounded a, Enum a, Eq a) => (a -> Bool) -> a -> a
+incrementWhen p a
+  | p a = increment a
+  | otherwise = minBound
 
-get :: (Monoid w, Monad m) => RWST r w (Counter a) m a
-get = RWS.gets unCounter
-
-gets :: (Monoid w, Monad m) => (a -> b) -> RWST r w (Counter a) m b
-gets f = f <$> get
-
-increment :: (Monoid w, Monad m, Bounded a, Enum a, Eq a) => RWST r w (Counter a) m ()
-increment = do
-  c <- get
-  set $ if c == maxBound
-    then minBound
-    else succ c
-
-decrement :: (Monoid w, Monad m, Bounded a, Enum a, Eq a) => RWST r w (Counter a) m ()
-decrement = do
-  c <- get
-  set $ if c == minBound
-    then maxBound
-    else pred c
-
-incrementWhen
-  :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
-  => (a -> Bool)
-  -> RWST r w (Counter a) m ()
-incrementWhen p = do
-  b <- gets p
-  if b
-    then increment
-    else set minBound
-
-incrementUnless
-  :: (Monoid w, Monad m, Bounded a, Enum a, Eq a)
-  => (a -> Bool)
-  -> RWST r w (Counter a) m ()
+incrementUnless :: (Bounded a, Enum a, Eq a) => (a -> Bool) -> a -> a
 incrementUnless p = incrementWhen (not . p)
 ```
 To end this part, we clean and rebuild the library. You should not see any errors.
@@ -320,7 +241,7 @@ foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ...
 [1 of 1] Compiling Veldt.Counter    ...
 ```
-You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter to create a PWM.
+You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter API to create a PWM.
 
 ### [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Pulse Width Modulation or PWM is used to drive our LED. We use a technique called [time proportioning](https://en.wikipedia.org/wiki/Pulse-width_modulation#Time_proportioning) to generate the PWM signal with our counter. To begin let's create a `PWM.hs` file in the `Veldt` directory.
@@ -349,42 +270,42 @@ module Veldt.PWM
 import Clash.Prelude
 import Control.Lens
 import Control.Monad.RWS
-import qualified Veldt.Counter as C
+import Veldt.Counter
 ```
-We export the type `PWM` and its smart constructor `mkPWM`. The monadic API consists of `pwm`, a PWM action, and a setter `setDuty` to mutate the duty cycle. In this module we will be using [lens](https://hackage.haskell.org/package/lens) to mutate and zoom sub-states. Again, we use the RWS monad. Finally we import our counter as qualified so as not to conflict `RWS`'s `get` with `Counter`'s `get`. This means whenever we want to use an exported function from `Veldt.Counter` we must prefix it with `C.`.
+We export the type `PWM` and its smart constructor `mkPWM`. The monadic API consists of `pwm`, a PWM action, and a setter `setDuty` to mutate the duty cycle. In this module we will be using [lens](https://hackage.haskell.org/package/lens) to set, modify, and get sub-states. We usethe RWS monad from [mtl](https://hackage.haskell.org/package/mtl) because it allows zooming, magnification, and scribing. Although zooming etc. is not used in this module, it will help composition in the future as our library grows. Finally we import our counter module.
 
 Next we define the `PWM` type and its constructor. Note how we use `makeLenses` to automatically create lenses for our `PWM` type.
 ```haskell
 data PWM a = PWM
-  { _ctr  :: C.Counter a
+  { _ctr  :: a
   , _duty :: a
   } deriving (NFDataX, Generic)
 makeLenses ''PWM
 
 mkPWM :: Bounded a => a -> PWM a
-mkPWM = PWM (C.mkCounter minBound)
+mkPWM = PWM minBound
 ```
-The PWM state consists of a counter and a value used to control the duty cycle. Also, note that we keep `PWM` polymorphic, just like our counter. Our smart constructor creates a PWM with an initial duty cycle and a counter with an initial value set to the minimum bound. 
+The PWM state consists of a counter and a value used to control the duty cycle. Also, note that we keep `PWM` polymorphic. Our smart constructor `mkPWM` takes an initial duty cycle and creates a PWM with a counter initially set to the minimum bound. 
 
 Let's define and implement `setDuty` which will update the `duty` cycle and reset the counter.
 ```haskell
 setDuty :: (Monoid w, Monad m, Bounded a) => a -> RWST r w (PWM a) m ()
 setDuty d = do
   duty .= d
-  zoom ctr $ C.set minBound
+  ctr .= minBound
 ```
-We use the `.=` lens operator to set the `duty` cycle, then we use `zoom` to `set` the counter to its minimum bound. We use `setDuty` to change the duty cycle of the PWM. For example, suppose we have `setDuty 25 :: RWST r w (PWM (Index 100)) m ()`, then the PWM will operate at 25% duty cycle.
+We use the [`.=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:.-61-) lens operator to set the `duty` cycle and reset the `ctr` to `minBound`. We use `setDuty` to change the duty cycle of the PWM. For example, suppose we have `setDuty 25 :: RWST r w (PWM (Index 100)) m ()`, then the PWM will operate at 25% duty cycle.
 
 Finally, we tackle the `pwm` function.
 ```haskell
 pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
 pwm = do
   d <- use duty
-  c <- zoom ctr C.get
-  zoom ctr C.increment
+  c <- use ctr
+  ctr %= C.increment
   return $ boolToBit $ c < d
 ```
-First we bind `duty` to `d` and the counter value to `c`. Next we `increment` the counter. Last, we compare `c < d`, convert the `boolToBit`, and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
+First we bind `duty` to `d` and the `ctr` value to `c` with [`use`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:use) (like [`get`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-State-Class.html#v:get) but with a lens). Next we `increment` the `ctr` with [`%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:-37--61-) (like [`modify`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-State-Class.html#v:modify) but with a lens). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
 
 Here is the complete `PWM.hs` source code:
 ```haskell
@@ -398,30 +319,30 @@ module Veldt.PWM
 import Clash.Prelude
 import Control.Lens
 import Control.Monad.RWS
-import qualified Veldt.Counter as C
+import Veldt.Counter
 
 ---------
 -- PWM --
 ---------
 data PWM a = PWM
-  { _ctr  :: C.Counter a
+  { _ctr  :: a
   , _duty :: a
   } deriving (NFDataX, Generic)
 makeLenses ''PWM
 
 mkPWM :: Bounded a => a -> PWM a
-mkPWM d = PWM (C.mkCounter minBound) d
+mkPWM = PWM minBound
 
 setDuty :: (Monoid w, Monad m, Bounded a) => a -> RWST r w (PWM a) m ()
 setDuty d = do
   duty .= d
-  zoom ctr $ C.set minBound
+  ctr .= minBound
 
 pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
 pwm = do
   d <- use duty
-  c <- zoom ctr C.get
-  zoom ctr C.increment
+  c <- use ctr
+  ctr %= increment
   return $ boolToBit $ c < d
 ```
 To end this part, we rebuild the library. You should not see any errors.
@@ -760,24 +681,24 @@ data Color = Red | Green | Blue
   deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
-  { _color    :: C.Counter Color
+  { _color    :: Color
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
-  , _timer    :: C.Counter (Index 24000000)
+  , _timer    :: Index 24000000
   } deriving (NFDataX, Generic)
 makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = C.mkCounter Red
+  { _color    = Red
   , _redPWM   = P.mkPWM 0xFF
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
-  , _timer    = C.mkCounter 0
+  , _timer    = 0
   } 
 ```
-The blinker needs a color counter, three PWMs (one to drive each RGB signal), and a timer which will indicate when the color should change. We also create the `mkBlinker` smart constructor which initializes the color to `Red` and sets the red PWM duty cycle to `0xFF` with the other PWM duty cycles to `0` and the timer to `0`. We derive `Eq`, `Bounded` and `Enum` (along with the usual `NFDataX` and `Generic`) for `Color` so we can make it into a counter. For example, if we want to change the color from Red to Green, we can use `increment`. Remember `increment` also respects bounds, so incrementing the color `Blue` just wraps back around to `Red`.
+The blinker needs a color counter, three PWMs (one to drive each RGB signal), and a timer which will indicate when the color should change. We also create the `mkBlinker` smart constructor which initializes the color to `Red` and sets the red PWM duty cycle to `0xFF` with the other PWM duty cycles to `0` and the timer to `0`. We derive `Eq`, `Bounded` and `Enum` (along with the usual `NFDataX` and `Generic`) for `Color` so we can use functions from `Veldt.Counter`. For example, if we want to change the color from Red to Green, we can use `increment`. Remember `increment` also respects bounds, so incrementing the color `Blue` just wraps back around to `Red`.
 
 Next, we create a `toPWM` function to convert a `Color` into its RGB triple which we use to set the PWM duty cycles.
 ```haskell
@@ -793,24 +714,24 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- zoom timer $ C.gets (== maxBound)
-  zoom timer C.increment
+  timerDone <- uses timer (== maxBound)
+  timer %= C.increment
   when timerDone $ do
-    c' <- zoom color $ C.increment >> C.get
+    c' <- color <%= C.increment
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
     zoom greenPWM $ P.setDuty greenDuty'
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
 ```
-First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. Next, we get the current timer value and check if it equals `maxBound` and bind the `Bool` to `timerDone`. The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we `increment` it; remember that `increment` respects bounds. When `timerDone` is bound to `True`, we `increment` the `color` and bind the new color to `c'`. Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
+First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. [`zoom`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:zoom) allows us to run a monadic action within larger state. Next, we get the current timer value and check if it equals `maxBound` with [`uses`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:uses) then bind the resulting `Bool` to `timerDone`. The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we `increment` it; remember that `increment` respects bounds. When `timerDone` is `True`, we `increment` the `color` and bind the new color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
 
 Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
   where
-    blinkerMealy s i = let (a, s', _) = runRWS blinkerM i s
+    blinkerMealy s i = let (a, s', ()) = runRWS blinkerM i s
 		       in (s', a)
 ```
 First, we transform our `blinkerM :: RWS r () Blinker R.Rgb` into a transfer function `blinkerMealy` with type `Blinker -> () -> (Blinker, R.Rgb)` using `runRWS`. We use the unit `()` to describe no input. Then we use `mkBlinker` to construct the initial state. Finally, we apply a unit signal as input and apply the mealy output directly to the RGB Driver IP.
@@ -850,21 +771,21 @@ data Color = Red | Green | Blue
   deriving (NFDataX, Generic, Show, Eq, Enum, Bounded)
 
 data Blinker = Blinker
-  { _color    :: C.Counter Color
+  { _color    :: Color
   , _redPWM   :: P.PWM Byte
   , _greenPWM :: P.PWM Byte
   , _bluePWM  :: P.PWM Byte
-  , _timer    :: C.Counter (Index 24000000)
+  , _timer    :: Index 24000000
   } deriving (NFDataX, Generic)
 makeLenses ''Blinker
 
 mkBlinker :: Blinker
 mkBlinker = Blinker
-  { _color    = C.mkCounter Red
+  { _color    = Red
   , _redPWM   = P.mkPWM 0xFF
   , _greenPWM = P.mkPWM 0
   , _bluePWM  = P.mkPWM 0
-  , _timer    = C.mkCounter 0
+  , _timer    = 0
   }
 
 toPWM :: Color -> (Byte, Byte, Byte)
@@ -877,10 +798,10 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- zoom timer $ C.gets (== maxBound)
-  zoom timer C.increment
+  timerDone <- uses timer (== maxBound)
+  timer %= C.increment
   when timerDone $ do
-    c' <- zoom color $ C.increment >> C.get
+    c' <- color <%= C.increment
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
     zoom greenPWM $ P.setDuty greenDuty'
@@ -1046,13 +967,13 @@ We start with defining a deserializer state parameterized by its size and the ty
 data Deserializer n a = Deserializer
   { _dBuf  :: Vec n a
   , _dFull :: Bool
-  , _dCtr  :: C.Counter (Index n)
+  , _dCtr  :: Index n
   , _dDir  :: Direction
   } deriving (NFDataX, Generic)
 makeLenses ''Deserializer
 
 mkDeserializer :: KnownNat n => a -> Direction -> Deserializer n a
-mkDeserializer a = Deserializer (repeat a) False (C.mkCounter 0)
+mkDeserializer a = Deserializer (repeat a) False 0
 ```
 The `Deserializer` has four components:
   1. a buffer `_dBuf` which is a `Vec` to hold the data as it is deserialized
@@ -1072,8 +993,8 @@ deserialize d = do
   use dDir >>= \case
     R -> dBuf %= (<<+ d)
     L -> dBuf %= (d +>>)
-  dFull <~ zoom dCtr (C.gets (== maxBound))
-  zoom dCtr C.increment
+  dFull <~ uses dCtr (== maxBound)
+  dCtr %= C.increment
     
 get :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m (Vec n a)
 get = use dBuf
@@ -1081,24 +1002,24 @@ get = use dBuf
 clear :: (Monoid w, Monad m, KnownNat n) => RWST r w (Deserializer n a) m ()
 clear = do
   dFull .= False
-  zoom dCtr $ C.set 0
+  dCtr .= 0
 ```
 The `full` function simply returns the `dFull` value of the current state; `True` if the deserializer is full or `False` otherwise. Likewise, the `get` function returns the `dBuf` vector of the current state and the `clear` function sets `dFull` to `False` (meaning empty) and resets the `dCtr` counter to 0.
 
-The most important function `deserialize` takes a value, then adds it to either the head or tail of the `dBuf` vector. If the value of `dCtr` is equal to its maximum bound then set `dFull` to `True`, otherwise `False`. Finally, increment `dCtr`; remember `dCtr` will roll over to `0` if equal to max bound.
+The most important function `deserialize` takes a value, then adds it to either the head or tail of the `dBuf` vector. If the value of `dCtr` is equal to its maximum bound then set `dFull` to `True`, otherwise `False`. Finally, increment `dCtr`; remember `dCtr` will roll over to `0` if equal to max bound. Note [`<~`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:-60--126-) sets the target of the lens to the result of a monadic action.
 
 Next, we implement a serializer. Let's start with the state type and constructor.
 ```haskell
 data Serializer n a = Serializer
   { _sBuf   :: Vec n a
   , _sEmpty :: Bool
-  , _sCtr   :: C.Counter (Index n)
+  , _sCtr   :: Index n
   , _sDir   :: Direction
   } deriving (NFDataX, Generic)
 makeLenses ''Serializer
 
 mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
-mkSerializer a = Serializer (repeat a) True (C.mkCounter 0) 
+mkSerializer a = Serializer (repeat a) True 0
 ```
 The serializer state type is similar to the deserializer except the `Bool` flag tracks when the serializer is empty (as opposed to full in the deserializer).
 
@@ -1109,8 +1030,8 @@ serialize = do
   use sDir >>= \case
     R -> sBuf %= (`rotateRightS` d1)
     L -> sBuf %= (`rotateLeftS`  d1)
-  sEmpty <~ zoom sCtr (C.gets (== maxBound))
-  zoom sCtr C.increment
+  sEmpty <~ uses sCtr (== maxBound)
+  sCtr %= C.increment
 
 peek :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer (n + 1) a) m a
 peek = use sDir >>= \case
@@ -1121,12 +1042,12 @@ give :: (Monoid w, Monad m, KnownNat n) => Vec n a -> RWST r w (Serializer n a) 
 give v = do
   sBuf .= v
   sEmpty .= False
-  zoom sCtr $ C.set 0
+  sCtr .= 0
 
 empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
 empty = use sEmpty
 ```
-`empty` is similar to `full`, in that we just return the flag. `give` first sets the buffer to the function input `v`, then sets the empty flag to false (meaning the serializer is full) and finally we reset the counter to 0. `peek` returns either the `head` or `last` element of the buffer, depending on the serializer direction. This is useful because sometimes we just want to know what value to serialize without actually changing the underlying buffer. If we do want to update the underlying buffer, use `serialize` which rotates the buffer depending on the direction, then updates the empty flag, and finally increments the counter. Note we use [`<~`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:-60--126-), which runs a monadic action and sets the target to its result.
+`empty` is similar to `full`, in that we just return the flag. `give` first sets the buffer to the function input `v`, then sets the empty flag to false (meaning the serializer is full) and finally we reset the counter to 0. `peek` returns either the `head` or `last` element of the buffer, depending on the serializer direction. This is useful because sometimes we just want to know what value to serialize without actually changing the underlying buffer. If we do want to update the underlying buffer, use `serialize` which rotates the buffer depending on the direction, then updates the empty flag, and finally increments the counter. 
 
 Here is the complete [Serial.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Serial.hs) source code:
 ```haskell
@@ -1162,13 +1083,13 @@ data Direction = L | R
 data Deserializer n a = Deserializer
   { _dBuf  :: Vec n a
   , _dFull :: Bool
-  , _dCtr  :: C.Counter (Index n)
+  , _dCtr  :: Index n
   , _dDir  :: Direction
   } deriving (NFDataX, Generic)
 makeLenses ''Deserializer
 
 mkDeserializer :: KnownNat n => a -> Direction -> Deserializer n a
-mkDeserializer a = Deserializer (repeat a) False (C.mkCounter 0)
+mkDeserializer a = Deserializer (repeat a) False 0
 
 full :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m Bool
 full = use dFull
@@ -1178,8 +1099,8 @@ deserialize d = do
   use dDir >>= \case
     R -> dBuf %= (<<+ d)
     L -> dBuf %= (d +>>)
-  dFull <~ zoom dCtr (C.gets (== maxBound))
-  zoom dCtr C.increment
+  dFull <~ uses dCtr (== maxBound)
+  dCtr %= C.increment
     
 get :: (Monoid w, Monad m) => RWST r w (Deserializer n a) m (Vec n a)
 get = use dBuf
@@ -1187,7 +1108,7 @@ get = use dBuf
 clear :: (Monoid w, Monad m, KnownNat n) => RWST r w (Deserializer n a) m ()
 clear = do
   dFull .= False
-  zoom dCtr $ C.set 0
+  dCtr .= 0
 
 ----------------
 -- Serializer --
@@ -1195,21 +1116,21 @@ clear = do
 data Serializer n a = Serializer
   { _sBuf   :: Vec n a
   , _sEmpty :: Bool
-  , _sCtr   :: C.Counter (Index n)
+  , _sCtr   :: Index n
   , _sDir   :: Direction
   } deriving (NFDataX, Generic)
 makeLenses ''Serializer
 
 mkSerializer :: KnownNat n => a -> Direction -> Serializer n a
-mkSerializer a = Serializer (repeat a) True (C.mkCounter 0) 
+mkSerializer a = Serializer (repeat a) True 0
 
 serialize :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer n a) m ()
 serialize = do
   use sDir >>= \case
     R -> sBuf %= (`rotateRightS` d1)
     L -> sBuf %= (`rotateLeftS`  d1)
-  sEmpty <~ zoom sCtr (C.gets (== maxBound))
-  zoom sCtr C.increment
+  sEmpty <~ uses sCtr (== maxBound)
+  sCtr %= C.increment
 
 peek :: (Monoid w, Monad m, KnownNat n) => RWST r w (Serializer (n + 1) a) m a
 peek = use sDir >>= \case
@@ -1220,7 +1141,7 @@ give :: (Monoid w, Monad m, KnownNat n) => Vec n a -> RWST r w (Serializer n a) 
 give v = do
   sBuf .= v
   sEmpty .= False
-  zoom sCtr $ C.set 0
+  sCtr .= 0
 
 empty :: (Monoid w, Monad m) => RWST r w (Serializer n a) m Bool
 empty = use sEmpty
@@ -1294,7 +1215,7 @@ data TxFsm = TxStart | TxSend
 data Transmitter = Transmitter
   { _txSer  :: S.Serializer 10 Bit
   , _txBaud :: Unsigned 16
-  , _txCtr  :: C.Counter (Unsigned 16)
+  , _txCtr  :: Unsigned 16
   , _txFsm  :: TxFsm
   }
   deriving (NFDataX, Generic)
@@ -1304,7 +1225,7 @@ mkTransmitter :: Unsigned 16 -> Transmitter
 mkTransmitter b = Transmitter
   { _txSer  = S.mkSerializer 0 S.R
   , _txBaud = b
-  , _txCtr  = C.mkCounter 0
+  , _txCtr  = 0
   , _txFsm  = TxStart
   }
 ```
@@ -1322,14 +1243,14 @@ transmit :: Byte -> RWS r Tx Transmitter Bool
 transmit byte = use txFsm >>= \case
   TxStart -> do
     zoom txSer $ S.give $ bv2v $ frame byte
-    zoom txCtr $ C.set 0
+    txCtr .= 0
     txFsm .= TxSend
     return False
   TxSend -> do
     zoom txSer S.peek >>= tell . Tx
     baud <- use txBaud
-    ctrDone <- zoom txCtr $ C.gets (== baud)
-    zoom txCtr $ C.incrementUnless (== baud)
+    ctrDone <- uses txCtr (== baud)
+    txCtr %= C.incrementUnless (== baud)
     if ctrDone
       then do
         zoom txSer S.serialize
@@ -1341,11 +1262,11 @@ transmit byte = use txFsm >>= \case
 frame :: Byte -> BitVector 10
 frame b = (1 :: BitVector 1) ++# b ++# (0 :: BitVector 1)
 ```
-First, we do case analysis on `txFsm`:
+We do case analysis on `txFsm`:
   1. If `txFsm` is `TxStart` we `frame` the input byte, transform it into a `Vec` of `Bit`s (note this reverses the bits), then `give` it to the serializer `_txSer`. We also set the counter `_txCtr` to zero, update `txFsm` to the `TxSend` state, and return `False` which indicates the transmit is in progress.
-  2. If `txFsm` is `TxSend`, first we `peek` at the current bit to serialize, wrap it in a `Tx` type, then pass it to `tell` which transmits the bit via the writer monad.
+  2. If `txFsm` is `TxSend`, first we `peek` at the current bit to serialize, wrap it in a `Tx` type, then pass it to `tell` which transmits the bit via the writer monad. Then we update the baud counter `txCtr`. If the baud counter is done then we `serialize`. Then if `txSer` is empty, set `txFsm` back to `TxStart`, and return the empty flag. When the serializer is empty, `transmit` returns `True` (indicating the transmission is finished). If the baud counter is not done, return False (indicating transmission is busy).
 
-We have to `frame` a byte before sending it, this means adding a start bit and an end bit. The start bit is `0` and the end bit is `1`. Our frame function takes into account that `bv2v` reverses the bits, thus the start bit in `frame` is added to the end of the byte and the stop bit is added to the beginning.
+Note, we have to `frame` a byte before sending it, this means adding a start bit and an end bit. The start bit is `0` and the end bit is `1`. Our frame function takes into account that `bv2v` reverses the bits, thus the start bit in `frame` is added to the end of the byte and the stop bit is added to the beginning.
 
 Next we tackle the receiver, beginning with the types:
 ```haskell
@@ -1355,7 +1276,7 @@ data RxFsm = RxIdle | RxStart | RxRecv | RxStop
 data Receiver = Receiver
   { _rxDes  :: S.Deserializer 8 Bit
   , _rxBaud :: Unsigned 16
-  , _rxCtr  :: C.Counter (Unsigned 16)
+  , _rxCtr  :: Unsigned 16
   , _rxFsm  :: RxFsm
   }
   deriving (NFDataX, Generic)
@@ -1365,7 +1286,7 @@ mkReceiver :: Unsigned 16 -> Receiver
 mkReceiver b = Receiver
   { _rxDes  = S.mkDeserializer 0 S.L
   , _rxBaud = b
-  , _rxCtr  = C.mkCounter 0
+  , _rxCtr  = 0
   , _rxFsm  = RxIdle
   }
 ```
@@ -1384,14 +1305,14 @@ receive = use rxFsm >>= \case
   RxIdle ->  do
     rxLow <- asks $ (== low) . unRx
     when rxLow $ do
-      zoom rxCtr C.increment
+      rxCtr %= C.increment
       rxFsm .= RxStart
     return Nothing
   RxStart -> do
     rxLow <- asks $ (== low) . unRx
     baudHalf <- uses rxBaud (`shiftR` 1)
-    ctrDone <- zoom rxCtr $ C.gets (== baudHalf)
-    zoom rxCtr $ C.incrementUnless (== baudHalf)
+    ctrDone <- uses rxCtr (== baudHalf)
+    rxCtr %= C.incrementUnless (== baudHalf)
     when ctrDone $ if rxLow
       then rxFsm .= RxRecv
       else rxFsm .= RxIdle
@@ -1416,8 +1337,8 @@ receive = use rxFsm >>= \case
   where
     countBaud = do
       baud <- use rxBaud
-      ctrDone <- zoom rxCtr $ C.gets (== baud)
-      zoom rxCtr $ C.incrementUnless (== baud)
+      ctrDone <- uses rxCtr (== baud)
+      rxCtr %= C.incrementUnless (== baud)
       return ctrDone
 ```
 Note the `countBaud` function, it gets the baud rate `_rxBaud` and checks if it is equal to `_rxCtr`, binding the result to `ctrDone`. If the counter is not equal to the baud rate, we increment. Finally, the function returns `ctrDone`. This function is used in each of the receiver states to indicate when to sample the RX wire.
@@ -1501,7 +1422,7 @@ data TxFsm = TxStart | TxSend
 data Transmitter = Transmitter
   { _txSer  :: S.Serializer 10 Bit
   , _txBaud :: Unsigned 16
-  , _txCtr  :: C.Counter (Unsigned 16)
+  , _txCtr  :: Unsigned 16
   , _txFsm  :: TxFsm
   }
   deriving (NFDataX, Generic)
@@ -1511,7 +1432,7 @@ mkTransmitter :: Unsigned 16 -> Transmitter
 mkTransmitter b = Transmitter
   { _txSer  = S.mkSerializer 0 S.R
   , _txBaud = b
-  , _txCtr  = C.mkCounter 0
+  , _txCtr  = 0
   , _txFsm  = TxStart
   }
 
@@ -1519,14 +1440,14 @@ transmit :: Byte -> RWS r Tx Transmitter Bool
 transmit byte = use txFsm >>= \case
   TxStart -> do
     zoom txSer $ S.give $ bv2v $ frame byte
-    zoom txCtr $ C.set 0
+    txCtr .= 0
     txFsm .= TxSend
     return False
   TxSend -> do
     zoom txSer S.peek >>= tell . Tx
     baud <- use txBaud
-    ctrDone <- zoom txCtr $ C.gets (== baud)
-    zoom txCtr $ C.incrementUnless (== baud)
+    ctrDone <- uses txCtr (== baud)
+    txCtr %= C.incrementUnless (== baud)
     if ctrDone
       then do
         zoom txSer S.serialize
@@ -1547,7 +1468,7 @@ data RxFsm = RxIdle | RxStart | RxRecv | RxStop
 data Receiver = Receiver
   { _rxDes  :: S.Deserializer 8 Bit
   , _rxBaud :: Unsigned 16
-  , _rxCtr  :: C.Counter (Unsigned 16)
+  , _rxCtr  :: Unsigned 16
   , _rxFsm  :: RxFsm
   }
   deriving (NFDataX, Generic)
@@ -1557,7 +1478,7 @@ mkReceiver :: Unsigned 16 -> Receiver
 mkReceiver b = Receiver
   { _rxDes  = S.mkDeserializer 0 S.L
   , _rxBaud = b
-  , _rxCtr  = C.mkCounter 0
+  , _rxCtr  = 0
   , _rxFsm  = RxIdle
   }
 
@@ -1566,14 +1487,14 @@ receive = use rxFsm >>= \case
   RxIdle ->  do
     rxLow <- asks $ (== low) . unRx
     when rxLow $ do
-      zoom rxCtr C.increment
+      rxCtr %= C.increment
       rxFsm .= RxStart
     return Nothing
   RxStart -> do
     rxLow <- asks $ (== low) . unRx
     baudHalf <- uses rxBaud (`shiftR` 1) 
-    ctrDone <- zoom rxCtr $ C.gets (== baudHalf)
-    zoom rxCtr $ C.incrementUnless (== baudHalf)
+    ctrDone <- uses rxCtr (== baudHalf)
+    rxCtr %= C.incrementUnless (== baudHalf)
     when ctrDone $ if rxLow
       then rxFsm .= RxRecv
       else rxFsm .= RxIdle
@@ -1598,8 +1519,8 @@ receive = use rxFsm >>= \case
   where
     countBaud = do
       baud <- use rxBaud
-      ctrDone <- zoom rxCtr $ C.gets (== baud)
-      zoom rxCtr $ C.incrementUnless (== baud)
+      ctrDone <- uses rxCtr (== baud)
+      rxCtr %= C.incrementUnless (== baud)
       return ctrDone
 
 ----------
