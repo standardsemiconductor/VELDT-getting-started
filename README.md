@@ -301,11 +301,10 @@ Finally, we tackle the `pwm` function.
 pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
 pwm = do
   d <- use duty
-  c <- use ctr
-  ctr %= C.increment
+  c <- ctr <<%= increment
   return $ boolToBit $ c < d
 ```
-First we bind `duty` to `d` and the `ctr` value to `c` with [`use`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:use) (like [`get`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-State-Class.html#v:get) but with a lens). Next we `increment` the `ctr` with [`%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:-37--61-) (like [`modify`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-State-Class.html#v:modify) but with a lens). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
+First we bind `duty` to `d`. Next we `increment` the `ctr` and bind it's **old** value to `c` with [`<<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--60--37--61-). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
 
 Here is the complete `PWM.hs` source code:
 ```haskell
@@ -341,8 +340,7 @@ setDuty d = do
 pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
 pwm = do
   d <- use duty
-  c <- use ctr
-  ctr %= increment
+  c <- ctr <<%= increment
   return $ boolToBit $ c < d
 ```
 To end this part, we rebuild the library. You should not see any errors.

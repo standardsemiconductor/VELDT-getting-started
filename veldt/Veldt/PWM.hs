@@ -30,8 +30,7 @@ setDuty d = do
 pwm :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWM a) m Bit
 pwm = do
   d <- use duty
-  c <- use ctr
-  ctr %= increment
+  c <- ctr <<%= increment
   return $ boolToBit $ c < d
 
   
