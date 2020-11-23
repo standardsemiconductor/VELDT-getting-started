@@ -75,6 +75,7 @@ library
         import: common-options
         exposed-modules: Veldt.Counter,
                          Veldt.PWM,
+                         Veldt.PWM.Rgb,
                          Veldt.Serial,
                          Veldt.Uart,
                          Veldt.Ice40.Rgb
