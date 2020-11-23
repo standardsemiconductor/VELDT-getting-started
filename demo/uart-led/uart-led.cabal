@@ -1,0 +1,108 @@
+cabal-version:       2.4
+name:                uart-led
+version:             0.1
+license-file:        LICENSE
+author:              Standard semiconductor
+maintainer:          standard.semiconductor@gmail.com
+
+common common-options
+  default-extensions:
+    BangPatterns
+    BinaryLiterals
+    ConstraintKinds
+    DataKinds
+    DefaultSignatures
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    GeneralizedNewtypeDeriving
+    InstanceSigs
+    KindSignatures
+    LambdaCase
+    MagicHash
+    NoStarIsType
+    PolyKinds
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    ViewPatterns
+
+    -- TemplateHaskell is used to support convenience functions such as
+    -- 'listToVecTH' and 'bLit'.
+    TemplateHaskell
+    QuasiQuotes
+
+    -- Prelude isn't imported by default as Clash offers Clash.Prelude
+    NoImplicitPrelude
+  ghc-options:
+    -Wall -Wcompat
+
+    -- Plugins to support type-level constraint solving on naturals
+    -fplugin GHC.TypeLits.Extra.Solver
+    -fplugin GHC.TypeLits.Normalise
+    -fplugin GHC.TypeLits.KnownNat.Solver
+
+    -- Clash needs access to the source code in compiled modules
+    -fexpose-all-unfoldings
+
+    -- Worker wrappers introduce unstable names for functions that might have
+    -- blackboxes attached for them. You can disable this, but be sure to add
+    -- a no-specialize pragma to every function with a blackbox.
+    -fno-worker-wrapper
+  default-language: Haskell2010
+  build-depends:
+    base,
+    Cabal,
+    mtl,
+    lens,
+
+    -- clash-prelude will set suitable version bounds for the plugins
+    clash-prelude >= 1.2.2 && < 1.4,
+    ghc-typelits-natnormalise,
+    ghc-typelits-extra,
+    ghc-typelits-knownnat
+
+library
+  import: common-options
+  hs-source-dirs: src
+  exposed-modules:
+    Uart-led
+  default-language: Haskell2010
+
+-- Builds the executable 'clash', with uart-led in scope
+executable clash
+  main-is: bin/Clash.hs
+  Build-Depends: base, clash-ghc, uart-led
+  if !os(Windows)
+    ghc-options: -dynamic
+
+-- Builds the executable 'clashi', with uart-led in scope
+executable clashi
+  main-is: bin/Clashi.hs
+  if !os(Windows)
+    ghc-options: -dynamic
+  build-depends: base, clash-ghc, uart-led
+
+--test-suite test-library
+--  import: common-options
+--  hs-source-dirs: tests
+--  type: exitcode-stdio-1.0
+--  ghc-options: -threaded
+--  main-is: tests.hs
+--  other-modules:
+--    Tests.Uart-led
+--  build-depends:
+--    uart-led,
+--    QuickCheck,
+--    tasty >= 1.2 && < 1.3,
+--    tasty-quickcheck
