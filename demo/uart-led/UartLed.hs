@@ -1,12 +1,15 @@
+{-# LANGUAGE LambdaCase #-}
 module UartLed where
 
 import Clash.Prelude
 import Clash.Annotations.TH
 import Control.Monad.RWS
 import Control.Lens hiding (Index)
+import Data.Maybe (fromMaybe)
 import Veldt.Counter
-import qualified Veldt.PWM.Rgb as P
-import qualified Veldt.Uart    as U
+import qualified Veldt.PWM.Rgb   as P
+import qualified Veldt.Ice40.Rgb as R
+import qualified Veldt.Uart      as U
 
 type Byte = BitVector 8
 type Timer = Index 36000000
@@ -65,7 +68,7 @@ mkUartLed = UartLed
   , _timer  = 0
   }
 
-uartLed :: RWS Rx (First Rgb) UartLed ()
+uartLed :: RWS U.Rx (First R.Rgb) UartLed ()
 uartLed = do
   -- Output pwm rgb when Led on
   isOn <- uses led (== On)
@@ -87,8 +90,8 @@ uartLed = do
 uartLedS
   :: HiddenClockResetEnable dom
   => Signal dom Bit
-  -> Signal dom Rgb
-uartLedS = rgb . fmap (fromMaybe (0, 0, 0) . getFirst) . mealy uartLedMealy mkUartLed
+  -> Signal dom R.Rgb
+uartLedS = R.rgb . fmap (fromMaybe (0, 0, 0) . getFirst) . mealy uartLedMealy mkUartLed
   where
     uartLedMealy s i = let ((), s', o) = runRWS uartLed (U.Rx i) s
                        in (s', o)
@@ -97,7 +100,7 @@ uartLedS = rgb . fmap (fromMaybe (0, 0, 0) . getFirst) . mealy uartLedMealy mkUa
 topEntity
   :: "clk" ::: Clock XilinxSystem
   -> "rx"  ::: Signal XilinxSystem Bit
-  -> "led" ::: Siganl XilinxSystem Rgb
+  -> "led" ::: Signal XilinxSystem R.Rgb
 topEntity clk = withClockResetEnable clk rst enableGen uartLedS
   where
     rst = unsafeFromHighPolarity $ pure False

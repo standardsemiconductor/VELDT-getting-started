@@ -65,7 +65,7 @@ common common-options
     Cabal,
     mtl,
     lens,
-
+    veldt,
     -- clash-prelude will set suitable version bounds for the plugins
     clash-prelude >= 1.2.2 && < 1.4,
     ghc-typelits-natnormalise,
@@ -74,9 +74,8 @@ common common-options
 
 library
   import: common-options
-  hs-source-dirs: src
   exposed-modules:
-    Uart-led
+    UartLed
   default-language: Haskell2010
 
 -- Builds the executable 'clash', with uart-led in scope
@@ -92,17 +91,3 @@ executable clashi
   if !os(Windows)
     ghc-options: -dynamic
   build-depends: base, clash-ghc, uart-led
-
---test-suite test-library
---  import: common-options
---  hs-source-dirs: tests
---  type: exitcode-stdio-1.0
---  ghc-options: -threaded
---  main-is: tests.hs
---  other-modules:
---    Tests.Uart-led
---  build-depends:
---    uart-led,
---    QuickCheck,
---    tasty >= 1.2 && < 1.3,
---    tasty-quickcheck

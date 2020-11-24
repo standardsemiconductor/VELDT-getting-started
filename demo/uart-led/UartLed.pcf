@@ -1,0 +1,7 @@
+set_io rx 15 # iob_34a_spi_wck ice_wck  uart_rx
+
+set_io clk 35 # iot_46b_g0 12Mhz Xtal
+
+set_io led_blue  41 # rgb2 blue
+set_io led_green 40 # rgb1 green
+set_io led_red   39 # rgb0 red
