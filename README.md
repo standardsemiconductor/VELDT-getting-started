@@ -11,7 +11,9 @@
    1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
    2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art)
    3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo)
-   
+4. [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#happylife]
+   1. [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#dry-pwm)
+   2. [Happylife: UART LED](https://github.com/standardsemiconductor/VELDT-getting-started#happylife-uart-led)
 **Clicking on any header within this document will return to Table of Contents** 
 
 ## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
@@ -1870,3 +1872,86 @@ It should say "Welcome to minicom" along with some information about options, po
 This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo). Here is a demo video:
 
 ![](demo/echo/echo.gif)
+
+## Section 4: Happylife
+In this section we [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) up the Veldt library by factoring out a common operation: using PWMs to drive RGB (red, green, blue) signals. Then we implement the [UartLed](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) demo: a system which controls the LED via a UART.
+
+### [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+In the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.hs) we used three PWMs to drive the RGB LED. This is a common pattern, and one we will use in the upcoming UART LED demo. To avoid repeating code, we factor this pattern into a separate module `Veldt.PWM.Rgb`. Let's create the directory `PWM` with the file `Rgb.hs` then open it with a text editor.
+```console
+foo@bar:~/VELDT-getting-started$ mkdir veldt/Veldt/PWM && touch veldt/Veldt/PWM/Rgb.hs
+```
+Define the module, API, and imports:
+```haskell
+module Veldt.PWM.Rgb
+  ( PWMRgb
+  , mkPWMRgb
+  , pwmRgb
+  , setRgb
+  ) where
+
+import Clash.Prelude
+import Control.Lens
+import Control.Monad.RWS
+import Veldt.PWM
+import Veldt.Ice40.Rgb (Rgb)
+```
+The module exports five things
+  1. `PWMRgb`: the state type which consists of three PWMs
+  2. `mkPWMRgb`: the smart constructor for `PWMRgb`
+  3. `pwmRgb`: run each pwm then return a RGB (red, green, blue) triple with type `Rgb`
+  4. `setRgb`: set the duty cycle for each PWM
+  
+Now define the state type along with a smart constructor:
+```haskell
+data PWMRgb a = PWMRgb
+  { _redPWM   :: PWM a
+  , _greenPWM :: PWM a
+  , _bluePWM  :: PWM a
+  } deriving (NFDataX, Generic)
+makeLenses ''PWMRgb
+
+mkPWMRgb :: Bounded a => (a, a, a) -> PWMRgb a
+mkPWMRgb (r, g, b) = PWMRgb
+  { _redPWM   = mkPWM r
+  , _greenPWM = mkPWM g
+  , _bluePWM  = mkPWM b
+  }
+```
+`PWMRgb` is just three PWMs each corresponding to a color: red, green, and blue. To construct `PWMRgb` with `mkPWMRgb` we first need an initial duty cycle for each color (represented as a triple). Then, we construct each individual color PWM with the `mkPWM` smart constructor from the [`Veldt.PWM`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs) module. Our `mkPWMRgb` function has a `Bounded` constraint because `mkPWM` requires it (remember `mkPWM` sets `ctr` to `minBound`).
+
+Now we implement the API:
+```haskell
+pwmRgb :: (Monoid w, Monad m, Ord a, Bounded a, Enum a) => RWST r w (PWMRgb a) m Rgb
+pwmRgb = do
+  r <- zoom redPWM   pwm
+  g <- zoom greenPWM pwm
+  b <- zoom bluePWM  pwm
+  return (r, g, b)
+
+setRgb :: (Monoid w, Monad m, Bounded a) => (a, a, a) -> RWST r w (PWMRgb a) m ()
+setRgb (r, g, b) = do
+  zoom redPWM   $ setDuty r
+  zoom greenPWM $ setDuty g
+  zoom bluePWM  $ setDuty b
+```
+
+The first function `pwmRgb` uses [`zoom`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:zoom) to get at each `PWM` sub-state then runs `pwm`. We collect the outputs (each having type `Bit`) and return the triple as type `Rgb`. Remeber `Rgb` is a triple-tuple of `Bit`s  annotated "red", "green", and "blue". We could have used `(Bit, Bit, Bit)` instead of `Rgb` but there is no need when `Rgb` is more descriptive and already defined in `Veldt.Ice40.Rgb`.
+
+The second function `setRgb` takes a triple of duty cycles (parameterized by `a`) and updates each individual PWM's duty cycle. We use `zoom` to get at each PWM sub-state, then use `setDuty` for each color's PWM.
+
+Make sure to add this module (`Veldt.PWM.Rgb`) to the `exposed-modules` list in the `veldt.cabal` file.
+```
+...
+exposed-modules: Veldt.Counter,
+                 Veldt.PWM,
+                 Veldt.PWM.Rgb,
+                 Veldt.Serial,
+		 ...
+...
+```
+Rebuild the library; there should be no errors.
+```console
+foo@bar:~/VELDT-getting-started/veldt$ cabal build
+```
+In the next part we will use `PWMRgb` and build a system which controls the LED via UART. We leave it as an exercise to the reader to use `PWMRgb` to DRY up the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker).
