@@ -11,9 +11,10 @@
    1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
    2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art)
    3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo)
-4. [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#happylife]
+4. [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#happylife)
    1. [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#dry-pwm)
    2. [Happylife: UART LED](https://github.com/standardsemiconductor/VELDT-getting-started#happylife-uart-led)
+   
 **Clicking on any header within this document will return to Table of Contents** 
 
 ## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
@@ -1873,8 +1874,8 @@ This concludes the demo. You can find the project directory [here](https://githu
 
 ![](demo/echo/echo.gif)
 
-## Section 4: Happylife
-In this section we [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) up the Veldt library by factoring out a common operation: using PWMs to drive RGB (red, green, blue) signals. Then we implement the [UartLed](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) demo: a system which controls the LED via a UART.
+## [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents))
+In this section we [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) up the Veldt library by factoring out a common operation: using PWMs to drive RGB (red, green, blue) signals. Then we implement the [UART LED](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) demo: a system which controls the LED via a UART.
 
 ### [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.hs) we used three PWMs to drive the RGB LED. This is a common pattern, and one we will use in the upcoming UART LED demo. To avoid repeating code, we factor this pattern into a separate module `Veldt.PWM.Rgb`. Let's create the directory `PWM` with the file `Rgb.hs` then open it with a text editor.
