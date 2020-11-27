@@ -1804,7 +1804,7 @@ topEntity clk = withClockResetEnable clk rst enableGen echo
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Echo"
 ```
-We annotate the inputs and outputs for easy usage with our pin constraint file. Additionally, `makeTopEntityWithName` from `Clash.Annotations.TH` automatically annotates our function with specified input, output, and module names.
+We annotate the inputs and outputs for easy usage with our pin constraint file. Additionally, [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) from [`Clash.Annotations.TH`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Annotations-TH.html) automatically annotates our function with specified input, output, and module names.
 
 Next, edit the `Echo.pcf` file to match our `topEntity` declaration. We only need three pins so we remove the ones we don't need. The `generic_pcf.pcf` which we copied from has all the pins and helpful comments to discern their function. We need pin 35 `12Mhz Xtal` (12Mhz crystal oscillator) for `clk`. We need pin 17 for `tx` and pin 15 for `rx`. Note `#` starts a comment.
 Your `Echo.pcf` file should look similar:
@@ -1868,13 +1868,13 @@ Next start minicom:
 ```console
 foo@bar:~/VELDT-getting-started/demo/echo$ minicom
 ```
-It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! <kbd>Ctrl-A</kbd> <kbd>x</kbd> will exit minicom when you are finished testing out the echo.
+It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! <kbd>Ctrl-a</kbd> <kbd>x</kbd> will exit minicom when you are finished testing out the echo.
 
 This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo). Here is a demo video:
 
 ![](demo/echo/echo.gif)
 
-## [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents))
+## [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) up the Veldt library by factoring out a common operation: using PWMs to drive RGB (red, green, blue) signals. Then we implement the [UART LED](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) demo: a system which controls the LED via a UART.
 
 ### [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
@@ -1941,7 +1941,7 @@ The first function `pwmRgb` uses [`zoom`](https://hackage.haskell.org/package/le
 
 The second function `setRgb` takes a triple of duty cycles (parameterized by `a`) and updates each individual PWM's duty cycle. We use `zoom` to get at each PWM sub-state, then use `setDuty` for each color's PWM.
 
-Make sure to add this module (`Veldt.PWM.Rgb`) to the `exposed-modules` list in the `veldt.cabal` file.
+Make sure to add this module (`Veldt.PWM.Rgb`) to the `exposed-modules` list in the [`veldt.cabal`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/veldt.cabal) file.
 ```
 ...
 exposed-modules: Veldt.Counter,
