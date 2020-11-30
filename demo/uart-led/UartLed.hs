@@ -14,6 +14,15 @@ import qualified Veldt.Uart      as U
 type Byte = BitVector 8
 type Timer = Index 36000000
 
+data Speed = Low | Mid | Hi
+  deriving (NFDataX, Generic, Eq, Bounded, Enum)
+
+toPeriod :: Speed -> Timer
+toPeriod = \case
+  Low -> 35999999
+  Mid -> 11999999
+  Hi  -> 2999999
+
 data Color = Red | Green | Blue
   deriving (NFDataX, Generic)
 
@@ -23,14 +32,12 @@ fromColor = \case
   Green -> (0x00, 0xFF, 0x00)
   Blue  -> (0x00, 0x00, 0xFF)
 
-data Speed = Low | Mid | Hi
-  deriving (NFDataX, Generic, Eq, Bounded, Enum)
+data Led = On | Off
+  deriving (NFDataX, Generic, Eq)
 
-toPeriod :: Speed -> Timer
-toPeriod = \case
-  Low -> 35999999
-  Mid -> 11999999
-  Hi  -> 2999999
+toggle :: Led -> Led
+toggle On  = Off
+toggle Off = On
 
 data Instr = Speed | Color Color
   deriving (NFDataX, Generic)
@@ -42,13 +49,6 @@ encodeInstrM = \case
   0x67 -> Just $ Color Green -- 'g'
   0x62 -> Just $ Color Blue  -- 'b'
   _    -> Nothing
-
-data Led = On | Off
-  deriving (NFDataX, Generic, Eq)
-
-toggle :: Led -> Led
-toggle On  = Off
-toggle Off = On
 
 data UartLed = UartLed
   { _uart   :: U.Uart

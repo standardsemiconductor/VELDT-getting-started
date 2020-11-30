@@ -1957,7 +1957,7 @@ foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ```
 In the next part we will use `PWMRgb` and build a system which controls the LED via UART. We leave it as an exercise to the reader to use `PWMRgb` to DRY up the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker).
 
-### Happylife: UART LED
+### [Happylife: UART LED](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 In this section we build a system which allows the user to control an LED via UART. Specifically, the user can change the LED color and the speed at which the LED blinks. The user sends ascii characters via UART to the system:
   * <kbd>s</kbd> adjusts the blinking speed, there are three speeds: low, medium, and high
   * <kbd>r</kbd> sets the LED color to red
@@ -1965,3 +1965,63 @@ In this section we build a system which allows the user to control an LED via UA
   * <kbd>b</kbd> sets the LED color to blue
 
 You can find all the demo files (cabal, pin-constraint, Makefile etc.) in the [uart-led](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) directory. We will dive directly into the demo source code [UartLed.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/uart-led/UartLed.hs) so as not to get bogged down by setup (it's very similar to the first two demos).
+
+Let's declare our module, langauge extensions, and imports:
+```haskell
+{-# LANGUAGE LambdaCase #-}
+module UartLed where
+
+import Clash.Prelude
+import Clash.Annotations.TH
+import Control.Monad.RWS
+import Control.Lens hiding (Index)
+import Data.Maybe (fromMaybe)
+import Veldt.Counter
+import qualified Veldt.PWM.Rgb   as P
+import qualified Veldt.Ice40.Rgb as R
+import qualified Veldt.Uart      as U
+```
+Using [LambdaCase](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) is just an opinion. I like the way it cleans up syntax, but it is not necessary. We name the module `UartLed` which will match-up with our top entity name and Makefile's TOP variable. Note we import `Veldt.Counter` unqualified along with `Veldt.PWM.Rgb`, `Veldt.Ice40.Rgb`, and `Veldt.Uart` as qualified.
+
+Next we define some type synonyms:
+```haskell
+type Byte = BitVector 8
+type Timer = Index 36000000
+```
+`Byte` is straight forward, just saving keystrokes. `Timer` is used to indicate when the LED should toggle on and off. We are running this demo with a 12Mhz clock and blink speeds range from slow (3 second period or 36,000,000 clock cycles) to fast (0.25 second period or 3,000,000 clock cycles) so `Index 36000000` will be large enough to count for all three speeds.
+
+In order to make working with speeds a bit easier, we define a custom data type `Speed` along with a helper function `toPeriod` which converts a `Speed` into a `Timer`.
+```haskell
+data Speed = Low | Mid | Hi
+  deriving (NFDataX, Generic, Eq, Bounded, Enum)
+
+toPeriod :: Speed -> Timer
+toPeriod = \case
+  Low -> 35999999
+  Mid -> 11999999
+  Hi  -> 2999999
+```
+Note that we derive `Eq`, `Bounded`, and `Enum` for `Speed`. This allows us to treat `Speed` as a counter. When the user enters <kbd>s</kbd>, we simply use `increment` from `Veldt.Counter`. Remember, `increment` respects bounds, so incrementing the speed when it is already `Hi` will just wrap around back to `Low`. Also note that `toPeriod` outputs the desired period minus one because the timer always starts at zero. In other words, counting from `0` to `2999999` takes three million clock cycles.
+
+Next we define our colors (red, green, and blue) as a custom data type `Color`. We also define a function `fromColor` which converts a `Color` into it's RGB representation; a byte triple. `fromColor` is used to get the appropriate PWM duty cycles for each color.
+```haskell
+data Color = Red | Green | Blue
+  deriving (NFDataX, Generic)
+
+fromColor :: Color -> (Byte, Byte, Byte)
+fromColor = \case
+  Red   -> (0xFF, 0x00, 0x00)
+  Green -> (0x00, 0xFF, 0x00)
+  Blue  -> (0x00, 0x00, 0xFF)
+```
+
+In addition to the LED having a color, it can also be toggled on and off. We define a type `Led` with two inhabitants, `On` and `Off`, along with a `toggle`. `toggle` simply maps `On` to `Off` and `Off` to `On`.
+```haskell
+data Led = On | Off
+  deriving (NFDataX, Generic, Eq)
+
+toggle :: Led -> Led
+toggle On  = Off
+toggle Off = On
+```
+
