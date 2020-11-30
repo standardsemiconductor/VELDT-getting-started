@@ -19,7 +19,8 @@
 
 ## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 
-> The nursery was silent. It was empty as a jungle glade at hot high noon. The walls were blank and two dimensional. Now, as George and Lydia Hadley stood in the center of the room, the walls began to purrand recede into crystalline distance, it seemed, and presently an African veldt appeared, in three dimensions, on all sides, in color reproduced to the final pebble and bit of straw. The ceiling above them became a deep sky with a hot yellow sun.
+> The nursery was silent. It was empty as a jungle glade at hot high noon. The walls were blank and two dimensional. Now, as George and Lydia Hadley stood in the center of the room, the walls began to purr and recede into crystalline distance, it seemed, and presently an African veldt appeared, in three dimensions, on all sides, in color reproduced to the final pebble and bit of straw. The ceiling above them became a deep sky with a hot yellow sun.
+
 > *The Veldt* by Ray Bradbury
 
 This is an opinionated guide to hardware design from first principles using Haskell and VELDT.  We assume you are using the [VELDT FPGA development board](https://www.standardsemiconductor.com) available to order from [Amazon](https://www.amazon.com/dp/B08F9T8DFT?ref=myi_title_dp). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
@@ -30,11 +31,15 @@ We use the Project IceStorm flow for synthesis, routing, and programming. These 
 
 This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 2](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 3](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar) covers serializers and deserializers which are used to construct a UART. In the future we hope to add sections which demonstrate how to interact with the memory provided by VELDT, design a simple CPU with a custom ISA, and constuct a System-On-Chip (SoC).
 
-By the end of the guide, you will have a library of commonly used sub-components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/veldt) and [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directories.
+By the end of the guide, you will have a library of commonly used hardware components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/veldt) and [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directories.
 
 Finally, if you have any suggestions, comments, discussions, edits additions etc. please open an issue in this repo. We value any and all contributions. Let's get started!
 
 ## [Section 2: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+> And here were the lions now, fifteen feet away, so real, so feverishly and startlingly real that you could feel the prickling fur on your hand, and your mouth was stuffed with the dusty upholstery smell of their heated pelts, and the yellow of them was in your eyes like the yellow of an exquisite French tapestry, the yellows of lions and summer grass, and the sound of the matted lion lungs exhaling on the silent noontide, and the smell of meat from the panting, dripping mouths.
+
+> *The Veldt* by Ray Bradbury 
+
 In this section we start by building a counter then, using the counter, construct a PWM. Equipped with our counter and PWM, we use the RGB LED Driver IP to create our first running application on VELDT; a blinker!
 
 ### [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
@@ -907,6 +912,11 @@ You can find the blinker demo [here](https://github.com/standardsemiconductor/VE
 
 ![](demo/blinker/blinker.gif)
 ## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+
+> Remarkable how the nursery caught the telepathic emanations of the children’s minds and created life to fill their every desire. The children thought lions, and there were lions. The children thought zebras, and there were zebras. Sun—sun. Giraffes—giraffes. 
+
+> *The Veldt* by Ray Bradbury
+
 In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART (Universal Asynchronous Receiver Transmitter). Equipped with our UART, we create a demo which echoes its input.
 ### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 Let's begin by creating a file `Serial.hs` in the `Veldt` directory.
@@ -1879,9 +1889,14 @@ This concludes the demo. You can find the project directory [here](https://githu
 ![](demo/echo/echo.gif)
 
 ## [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+> They walked down the hall of their soundproofed Happylife Home... this house which clothed and fed and rocked them to sleep and played and sang and was good to them. Their approach sensitized a switch somewhere and the nursery light flicked on when they came within ten feet of it. Similarly, behind them, in the halls, lights went on and off as they left them behind, with a soft automaticity.
+
+> *The Veldt* by Ray Bradbury
+
 In this section we [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) up the Veldt library by factoring out a common operation: using PWMs to drive RGB (red, green, blue) signals. Then we implement the [UART LED](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) demo: a system which controls the LED via a UART.
 
 ### [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+
 In the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.hs) we used three PWMs to drive the RGB LED. This is a common pattern, and one we will use in the upcoming UART LED demo. To avoid repeating code, we factor this pattern into a separate module `Veldt.PWM.Rgb`. Let's create the directory `PWM` with the file `Rgb.hs` then open it with a text editor.
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir veldt/Veldt/PWM && touch veldt/Veldt/PWM/Rgb.hs
