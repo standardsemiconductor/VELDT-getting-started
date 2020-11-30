@@ -1956,3 +1956,12 @@ Rebuild the library; there should be no errors.
 foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ```
 In the next part we will use `PWMRgb` and build a system which controls the LED via UART. We leave it as an exercise to the reader to use `PWMRgb` to DRY up the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker).
+
+### Happylife: UART LED
+In this section we build a system which allows the user to control an LED via UART. Specifically, the user can change the LED color and the speed at which the LED blinks. The user sends ascii characters via UART to the system:
+  * <kbd>s</kbd> adjusts the blinking speed, there are three speeds: low, medium, and high
+  * <kbd>r</kbd> sets the LED color to red
+  * <kbd>g</kbd> sets the LED color to green
+  * <kbd>b</kbd> sets the LED color to blue
+
+You can find all the demo files (cabal, pin-constraint, Makefile etc.) in the [uart-led](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) directory. We will dive directly into the demo source code [UartLed.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/uart-led/UartLed.hs) so as not to get bogged down by setup (it's very similar to the first two demos).
