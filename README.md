@@ -2044,3 +2044,50 @@ toggle On  = Off
 toggle Off = On
 ```
 
+Let's model the system instructions in types along with a way to encode them from ascii characters:
+```haskell
+data Instr = Speed | Color Color
+  deriving (NFDataX, Generic)
+
+encodeInstrM :: Byte -> Maybe Instr
+encodeInstrM = \case
+  0x73 -> Just Speed         -- 's'
+  0x72 -> Just $ Color Red   -- 'r'
+  0x67 -> Just $ Color Green -- 'g'
+  0x62 -> Just $ Color Blue  -- 'b'
+  _    -> Nothing
+```
+There are two "sorts" of instructions:
+  1. `Speed` instructions which will increase the blinking speed
+  2. `Color` instructions which has a single field with type `Color` (we pun the constructor `Color` and the type `Color`).
+
+We encode an instruction by pattern matching on an ascii byte. We used this [ascii table](http://www.asciitable.com/) to determine which bytes correspond to <kbd>s</kbd>, <kbd>r</kbd>, <kbd>g</kbd>, <kbd>b</kbd>. If the input byte does not correspond to one of those characters `encodeInstrM` returns `Nothing` indicating an invalid instruction, otherwise we return `Just` the expected instruction.
+
+We now have the necessary types to define the state space of the UART LED system:
+```haskell
+data UartLed = UartLed
+  { _uart   :: U.Uart
+  , _pwmRgb :: P.PWMRgb Byte
+  , _speed  :: Speed
+  , _led    :: Led
+  , _timer  :: Timer
+  } deriving (NFDataX, Generic)
+makeLenses ''UartLed
+
+mkUartLed :: UartLed
+mkUartLed = UartLed
+  { _uart   = U.mkUart 624
+  , _pwmRgb = P.mkPWMRgb $ fromColor Red
+  , _speed  = Low
+  , _led    = On
+  , _timer  = 0
+  }
+```
+
+There are five components:
+  1. `_uart` is the UART which we use to read bytes sent by the user. Initialized with a baud rate of 19200.
+  2. `_pwmRgb` is used to drive the RGB LED. Initialized to drive the color `Red`.
+  3. `_speed`: the current blinking speed. Initialized as `Low`.
+  4. `_led`: indicates whether the LED is currently on or off. Initialized as `On`.
+  5. `_timer`: counter used to indicate when to toggle the LED. Initialized as zero.
+

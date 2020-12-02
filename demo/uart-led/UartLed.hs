@@ -42,7 +42,7 @@ toggle Off = On
 data Instr = Speed | Color Color
   deriving (NFDataX, Generic)
 
-encodeInstrM :: BitVector 8 -> Maybe Instr
+encodeInstrM :: Byte -> Maybe Instr
 encodeInstrM = \case
   0x73 -> Just Speed         -- 's'
   0x72 -> Just $ Color Red   -- 'r'
