@@ -2058,8 +2058,8 @@ encodeInstrM = \case
   _    -> Nothing
 ```
 There are two "sorts" of instructions:
-  1. `Speed` instructions which will increase the blinking speed
-  2. `Color` instructions which has a single field with type `Color` (we pun the constructor `Color` and the type `Color`).
+  1. `Speed` instruction which will increase the blinking speed
+  2. `Color` instruction which has a single field with type `Color` (we pun the constructor `Color` and the type `Color`).
 
 We encode an instruction by pattern matching on an ascii byte. We used this [ascii table](http://www.asciitable.com/) to determine which bytes correspond to <kbd>s</kbd>, <kbd>r</kbd>, <kbd>g</kbd>, <kbd>b</kbd>. If the input byte does not correspond to one of those characters `encodeInstrM` returns `Nothing` indicating an invalid instruction, otherwise we return `Just` the expected instruction.
 
@@ -2091,3 +2091,59 @@ There are five components:
   4. `_led`: indicates whether the LED is currently on or off. Initialized as `On`.
   5. `_timer`: counter used to indicate when to toggle the LED. Initialized as zero.
 
+Now we can tackle the transfer function `uartLed`:
+```haskell
+uartLed :: RWS U.Rx (First R.Rgb) UartLed ()
+uartLed = do
+  -- Output pwm rgb when Led on
+  isOn <- uses led (== On)
+  when isOn $ tell . First . Just =<< zoom pwmRgb P.pwmRgb
+
+  -- Check toggle led
+  period <- uses speed toPeriod
+  t <- timer <<%= incrementUnless (== period)
+  when (t == period) $ led %= toggle
+
+  -- Update color/speed from uart
+  bM <- zoom uart U.read
+  forM_ (bM >>= encodeInstrM) $ \case
+    Speed -> do
+      speed %= increment
+      timer .= 0
+    Color c -> zoom pwmRgb $ P.setRgb $ fromColor c
+```
+Conceptually, we break the transfer function `uartLed` into three major parts. In the first part we check if the LED is currently `On`. When it is on, we output the result of `P.pwmRgb` with `tell`. Note, `tell` requires a monoid as an argument. That is why we wrap `R.Rgb` with the [`First`](https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-Monoid.html#t:First) monoid.
+
+In the second part, we check if the LED needs to be toggled. We get the speed and project it to it's period using `toPeriod`. Then, when the `timer` is equal to the period we `toggle` the `led` and reset the counter. Remember, `incrementUnless` takes care of resetting the timer if it is equal to the period. We use [`<<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--60--37--61-) to modify the timer and bind `t` to it's old value.
+
+In the third part, we read a byte from the UART, encode it into an instruction, then execute the instruction. If it is a `Speed` instruction, we increment speed and reset the timer to zero. If it is a `Color` instruction, we update the PWM RGB duty cycle with `setRgb`.
+
+We now run the `uartLed` transfer function:
+```haskell
+uartLedS
+  :: HiddenClockResetEnable dom
+  => Signal dom Bit
+  -> Signal dom R.Rgb
+uartLedS = R.rgb . fmap (fromMaybe (0, 0, 0) . getFirst) . mealy uartLedMealy mkUartLed
+  where
+    uartLedMealy s i = let ((), s', o) = runRWS uartLed (U.Rx i) s
+                       in (s', o)
+```
+
+We "run" the `uartLed` transfer function using [`runRWS`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) and make sure our types match what [`mealy`]() requires. We also unwrap the output signal, a RGB-tuple of PWM outputs, with [`getFirst`]() then `fromMaybe (0, 0, 0)`. If the LED is off then the output signal is `mempty` or `First Nothing`. After unwrapping, we end up feeding `(0, 0, 0)` into `R.rgb` which turns the LED off. If the LED is on then the output signal is `First (Just (pwmR, pwmG, pwmB))`. After unwrapping, we end up feeding `(pwmR, pwmG, pwmB)` into `R.rgb`, driving the LED!
+
+Last, we define the top entity:
+```haskell
+{-# NOINLINE topEntity #-}
+topEntity
+  :: "clk" ::: Clock XilinxSystem
+  -> "rx"  ::: Signal XilinxSystem Bit
+  -> "led" ::: Signal XilinxSystem R.Rgb
+topEntity clk = withClockResetEnable clk rst enableGen uartLedS
+  where
+    rst = unsafeFromHighPolarity $ pure False
+makeTopEntityWithName 'topEntity "UartLed"
+```
+We label the inputs "clk" and "rx" along with the output "led". We also make sure `makeTopEntityWithName` uses "UartLed" which matches `TOP` in our [Makefile]().
+
+Be sure the cabal files, bin directory, pcf file, and Makefile are setup correctly. Then plug the VELDT FPGA board into your computer. Set the power switch (white) to ON and the mode switch (BLACK) to FLASH. Ensure the PWR LED is illuminated RED. Then execute `make prog` from the command line. The demo should build, synthesize, and program with no errors. Afterwards, cycle the power switch (WHITE) and make sure the CDONE LED is illuminated BLUE. If CDONE does not turn on, try pressing the reset button. At this point the RGB LED should be RED and blinking (3 second period). Flip the mode switch (BLACK) to FPGA, then start minicom using the same setup as used in the echo demo. You should now be able to control the LED color and blinking speed with the <kbd>s</kbd>, <kbd>r</kbd>, <kbd>g</kbd>, and <kbd>b</kbd> keyboard characters.
