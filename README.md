@@ -2102,9 +2102,9 @@ uartLed = do
       timer .= 0
     Color c -> zoom pwmRgb $ P.setRgb $ fromColor c
 ```
-Conceptually, we break the transfer function `uartLed` into three major parts. In the first part we check if the LED is currently `On`. When it is on, we output the result of `P.pwmRgb` with `tell`. Note, `tell` requires a monoid as an argument. That is why we wrap `R.Rgb` with the [`First`](https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-Monoid.html#t:First) monoid.
+Conceptually, we break the transfer function `uartLed` into three major parts. In the first part we check if the LED is currently `On`. When it is on, we output the result of `P.pwmRgb` with [`tell`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-Writer-Lazy.html#v:tell). Note, `tell` requires a monoid as an argument. That is why we wrap `R.Rgb` with the [`First`](https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-Monoid.html#t:First) monoid.
 
-In the second part, we check if the LED needs to be toggled. We get the speed and project it to it's period using `toPeriod`. Then, when the `timer` is equal to the period we `toggle` the `led` and reset the counter. Remember, `incrementUnless` takes care of resetting the timer if it is equal to the period. We use [`<<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--60--37--61-) to modify the timer and bind `t` to it's old value.
+In the second part, we check if the LED needs to be toggled. We get the speed and project it to it's period using `toPeriod`. Then, when the `timer` is equal to the period we `toggle` the `led` and reset the counter. Remember, `incrementUnless` takes care of resetting the timer if it is equal to the period. We use [`<<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--60--37--61-) to modify the timer and bind `t` to it's old value. 
 
 In the third part, we read a byte from the UART, encode it into an instruction, then execute the instruction. If it is a `Speed` instruction, we increment speed and reset the timer to zero. If it is a `Color` instruction, we update the PWM RGB duty cycle with `setRgb`.
 
