@@ -1828,7 +1828,7 @@ set_io rx 15 # iob_34a_spi_wck ice_wck  uart_rx
 
 set_io clk 35 # iot_46b_g0 12Mhz Xtal
 ```
-You can view the [Functional Diagram](https://github.com/standardsemiconductor/VELDT-info/blob/master/functional-diagram.pdf) of the VELDT board to understand how these pins connect ot the rest of the board.
+You can view the [Functional Diagram](https://github.com/standardsemiconductor/VELDT-info/blob/master/functional-diagram.pdf) of the VELDT board to understand how these pins connect to the rest of the board.
 
 Before we test out our demo, we need a way to communicate with the VELDT from our computer via UART. For this demo we use [Minicom](https://help.ubuntu.com/community/Minicom), a text-based serial port communications program though any serial communcations program should work; just make sure it is configured with the correct port, protocol and baud rate!
 
@@ -1861,23 +1861,13 @@ Info: 	         ICESTORM_LC:   178/ 5280     3%
 Info: 	        ICESTORM_RAM:     0/   30     0%
 Info: 	               SB_IO:     3/   96     3%
 Info: 	               SB_GB:     4/    8    50%
-Info: 	        ICESTORM_PLL:     0/    1     0%
-Info: 	         SB_WARMBOOT:     0/    1     0%
-Info: 	        ICESTORM_DSP:     0/    8     0%
-Info: 	      ICESTORM_HFOSC:     0/    1     0%
-Info: 	      ICESTORM_LFOSC:     0/    1     0%
-Info: 	              SB_I2C:     0/    2     0%
-Info: 	              SB_SPI:     0/    2     0%
-Info: 	              IO_I3C:     0/    2     0%
-Info: 	         SB_LEDDA_IP:     0/    1     0%
-Info: 	         SB_RGBA_DRV:     0/    1     0%
-Info: 	      ICESTORM_SPRAM:     0/    4     0%
+...
 ```
 Likewise with max clock frequency; most importantly it should say `PASS at 12.00 MHz`:
 ```
 Info: Max frequency for clock 'clk$SB_IO_IN_$glb_clk': 65.82 MHz (PASS at 12.00 MHz)
 ```
-When the programming is finished (indicated by CDONE LED illuminated blue), toggle the power switch (white), then flip the configuration switch (black) to FPGA.
+When the programming is finished (indicated by CDONE LED illuminated blue), cycle the power switch (white), then flip the configuration switch (black) to FPGA.
 Next start minicom:
 ```console
 foo@bar:~/VELDT-getting-started/demo/echo$ minicom
@@ -2130,7 +2120,7 @@ uartLedS = R.rgb . fmap (fromMaybe (0, 0, 0) . getFirst) . mealy uartLedMealy mk
                        in (s', o)
 ```
 
-We "run" the `uartLed` transfer function using [`runRWS`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) and make sure our types match what [`mealy`]() requires. We also unwrap the output signal, a RGB-tuple of PWM outputs, with [`getFirst`]() then `fromMaybe (0, 0, 0)`. If the LED is off then the output signal is `mempty` or `First Nothing`. After unwrapping, we end up feeding `(0, 0, 0)` into `R.rgb` which turns the LED off. If the LED is on then the output signal is `First (Just (pwmR, pwmG, pwmB))`. After unwrapping, we end up feeding `(pwmR, pwmG, pwmB)` into `R.rgb`, driving the LED!
+We "run" the `uartLed` transfer function using [`runRWS`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) and rearrange our types for [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:mealy). We also unwrap the output signal, a RGB-tuple of PWM outputs, with [`getFirst`](https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-Monoid.html#v:getFirst) then `fromMaybe (0, 0, 0)`. If the LED is off then the output signal is `mempty` or `First Nothing`. After unwrapping, we end up feeding `(0, 0, 0)` into `R.rgb` which turns the LED off. If the LED is on then the output signal is `First (Just (pwmR, pwmG, pwmB))`. After unwrapping, we end up feeding `(pwmR, pwmG, pwmB)` into `R.rgb`, driving the LED!
 
 Last, we define the top entity:
 ```haskell
@@ -2146,4 +2136,19 @@ makeTopEntityWithName 'topEntity "UartLed"
 ```
 We label the inputs "clk" and "rx" along with the output "led". We also make sure `makeTopEntityWithName` uses "UartLed" which matches `TOP` in our [Makefile]().
 
-Be sure the cabal files, bin directory, pcf file, and Makefile are setup correctly. Then plug the VELDT FPGA board into your computer. Set the power switch (white) to ON and the mode switch (BLACK) to FLASH. Ensure the PWR LED is illuminated RED. Then execute `make prog` from the command line. The demo should build, synthesize, and program with no errors. Afterwards, cycle the power switch (WHITE) and make sure the CDONE LED is illuminated BLUE. If CDONE does not turn on, try pressing the reset button. At this point the RGB LED should be RED and blinking (3 second period). Flip the mode switch (BLACK) to FPGA, then start minicom using the same setup as used in the echo demo. You should now be able to control the LED color and blinking speed with the <kbd>s</kbd>, <kbd>r</kbd>, <kbd>g</kbd>, and <kbd>b</kbd> keyboard characters.
+Be sure the cabal files, bin directory, pcf file, and Makefile are setup correctly. Plug the VELDT FPGA board into your computer. Set the power switch (white) to ON and the configuration switch (black) to FLASH. Ensure the PWR LED is illuminated RED. Then execute `make prog` from the command line. The demo should build, synthesize, and program with no errors. You should see a similar device utilisation:
+```
+Info: Device utilisation:
+Info: 	         ICESTORM_LC:   340/ 5280     6%
+Info: 	        ICESTORM_RAM:     0/   30     0%
+Info: 	               SB_IO:     2/   96     2%
+Info: 	               SB_GB:     2/    8    25%
+...
+Info: 	         SB_RGBA_DRV:     1/    1   100%
+...
+```
+When the programming is finished (indicated by CDONE LED illuminated blue), cycle the power switch (white) and flip the configuration switch (black) to FPGA. The RGB LED should be RED and blinking with three second period. This is our initial state! Start minicom using the same setup as used in the echo demo. Within minicom we control the LED color and blink speed with the <kbd>s</kbd>, <kbd>r</kbd>, <kbd>g</kbd>, and <kbd>b</kbd> keyboard characters.
+
+This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led). Special thanks to @kejace for suggesting this demo.
+
+[Jump to Table of Contents](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
