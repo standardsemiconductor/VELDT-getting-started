@@ -18,10 +18,9 @@
 **Clicking on any header within this document will return to Table of Contents** 
 
 ## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+> And here were the lions now, fifteen feet away, so real, so feverishly and startlingly real that you could feel the prickling fur on your hand, and your mouth was stuffed with the dusty upholstery smell of their heated pelts, and the yellow of them was in your eyes like the yellow of an exquisite French tapestry, the yellows of lions and summer grass, and the sound of the matted lion lungs exhaling on the silent noontide, and the smell of meat from the panting, dripping mouths.
 
-> The nursery was silent. It was empty as a jungle glade at hot high noon. The walls were blank and two dimensional. Now, as George and Lydia Hadley stood in the center of the room, the walls began to purr and recede into crystalline distance, it seemed, and presently an African veldt appeared, in three dimensions, on all sides, in color reproduced to the final pebble and bit of straw. The ceiling above them became a deep sky with a hot yellow sun.
-
-> *The Veldt* by Ray Bradbury
+> *The Veldt* by Ray Bradbury 
 
 This is an opinionated guide to hardware design from first principles using Haskell and VELDT.  We assume you are using the [VELDT FPGA development board](https://www.standardsemiconductor.com) available to order from [Amazon](https://www.amazon.com/dp/B08F9T8DFT?ref=myi_title_dp). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
   
@@ -36,9 +35,9 @@ By the end of the guide, you will have a library of commonly used hardware compo
 Finally, if you have any suggestions, comments, discussions, edits additions etc. please open an issue in this repo. We value any and all contributions. Let's get started!
 
 ## [Section 2: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-> And here were the lions now, fifteen feet away, so real, so feverishly and startlingly real that you could feel the prickling fur on your hand, and your mouth was stuffed with the dusty upholstery smell of their heated pelts, and the yellow of them was in your eyes like the yellow of an exquisite French tapestry, the yellows of lions and summer grass, and the sound of the matted lion lungs exhaling on the silent noontide, and the smell of meat from the panting, dripping mouths.
+> The nursery was silent. It was empty as a jungle glade at hot high noon. The walls were blank and two dimensional. Now, as George and Lydia Hadley stood in the center of the room, the walls began to purr and recede into crystalline distance, it seemed, and presently an African veldt appeared, in three dimensions, on all sides, in color reproduced to the final pebble and bit of straw. The ceiling above them became a deep sky with a hot yellow sun.
 
-> *The Veldt* by Ray Bradbury 
+> *The Veldt* by Ray Bradbury
 
 In this section we start by building a counter then, using the counter, construct a PWM. Equipped with our counter and PWM, we use the RGB LED Driver IP to create our first running application on VELDT; a blinker!
 
