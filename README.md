@@ -11,7 +11,7 @@
    1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
    2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art)
    3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo)
-4. [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#happylife)
+4. [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-happylife)
    1. [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#dry-pwm)
    2. [Happylife: UART LED](https://github.com/standardsemiconductor/VELDT-getting-started#happylife-uart-led)
    
@@ -2133,7 +2133,7 @@ topEntity clk = withClockResetEnable clk rst enableGen uartLedS
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "UartLed"
 ```
-We label the inputs "clk" and "rx" along with the output "led". We also make sure `makeTopEntityWithName` uses "UartLed" which matches `TOP` in our [Makefile]().
+We label the inputs "clk" and "rx" along with the output "led". We also make sure `makeTopEntityWithName` uses "UartLed" which matches `TOP` in our [Makefile](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/uart-led/Makefile).
 
 Be sure the cabal files, bin directory, pcf file, and Makefile are setup correctly. Plug the VELDT FPGA board into your computer. Set the power switch (white) to ON and the configuration switch (black) to FLASH. Ensure the PWR LED is illuminated RED. Then execute `make prog` from the command line. The demo should build, synthesize, and program with no errors. You should see a similar device utilisation:
 ```
