@@ -46,7 +46,7 @@ We begin by creating a directory called "veldt" to contain our haskell library:
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir veldt && cd veldt
 ```
-We use the [clash-example-project](https://github.com/clash-lang/clash-compiler/tree/master/clash-starters/clash-example-project) as a template. Specifically, we copy the `bin/`, `cabal.project`, and `clash-example-project.cabal` into our `veldt` directory. We need to change the project name in the `cabal.project` and `veldt.cabal` files from `clash-example-project` to `veldt`. Additionally, in the `veldt.cabal` file we add `mtl`, `lens`, and `interpolate` to the build-depends section. 
+We use the [clash-example-project](https://github.com/clash-lang/clash-starters/tree/main/simple) as a template. Specifically, we copy the `bin/`, `cabal.project`, and `simple.cabal` into our `veldt` directory. We need to change the project name in the `cabal.project` and `veldt.cabal` files from `simple` to `veldt`. Additionally, in the `veldt.cabal` file we add `mtl`, `lens`, and `interpolate` to the build-depends section. 
 
 Your `cabal.project` file should look similar:
 ```
@@ -65,7 +65,7 @@ Your `veldt.cabal` file should look similar:
 ```
 cabal-version:       2.4
 name:                veldt
-version:             0.1.0.0
+version:             0.1
 license-file:        LICENSE
 author:              Standard Semiconductor
 maintainer:          standard.semiconductor@gmail.com
@@ -109,7 +109,8 @@ common common-options
     NoImplicitPrelude
   ghc-options:
     -Wall -Wcompat
-
+    -haddock
+    
     -- Plugins to support type-level constraint solving on naturals
     -fplugin GHC.TypeLits.Extra.Solver
     -fplugin GHC.TypeLits.Normalise
@@ -131,7 +132,7 @@ common common-options
     interpolate,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.2 && < 1.4,
+    clash-prelude >= 1.2.5 && < 1.4,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
@@ -144,6 +145,7 @@ library
 -- Builds the executable 'clash', with veldt in scope
 executable clash
   main-is: bin/Clash.hs
+  default-language: Haskell2010
   Build-Depends: base, clash-ghc, veldt
   if !os(Windows)
     ghc-options: -dynamic
@@ -151,6 +153,7 @@ executable clash
 -- Builds the executable 'clashi', with veldt in scope
 executable clashi
   main-is: bin/Clashi.hs
+  default-language: Haskell2010
   if !os(Windows)
     ghc-options: -dynamic
   build-depends: base, clash-ghc, veldt
@@ -160,7 +163,7 @@ We won't go through everything about this cabal file, but here are the highlight
 The common-section has three major parts:
   1. `default-extensions` extends the Haskell language, helps to reduce boilerplate, and cleans up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly. Instead, we want to explicitly import the Clash prelude. More information about language extensions can be found in the [GHC users guide](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html). 
   2. `ghc-options` turns on warnings and activates plugins.
-  3. `build-depends` lists our library dependencies. We use monad transformers from `mtl` and `lens` to zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the Clash compiler infer and manipulate types.
+  3. `build-depends` lists our library dependencies. We use monad transformers from `mtl` and `lens` to zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the Clash compiler infer and manipulate types. More information can be found in the [clash-starters repository](https://github.com/clash-lang/clash-starters/tree/main/simple#simple-starter-project).
 
 In the library section we import the `common-options` and list `exposed-modules` which are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` with a file `Counter.hs`. This will have our counter source code.
 
@@ -735,7 +738,7 @@ blinkerM = do
 ```
 First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. [`zoom`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:zoom) allows us to run a monadic action within larger state. Next, we get the current timer value and check if it equals `maxBound` with [`uses`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:uses) then bind the resulting `Bool` to `timerDone`. The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we `increment` it; remember that `increment` respects bounds. When `timerDone` is `True`, we `increment` the `color` and bind the new color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
 
-Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
+Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
@@ -756,11 +759,11 @@ topEntity clk = withClockResetEnable clk rst enableGen blinker
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Blinker"
 ```
-Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Signal.html#v:withClockResetEnable).
+Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Signal.html#v:withClockResetEnable).
 
-`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
+`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
 
-We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
+We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
 
 Here is the complete `Blinker.hs` source code:
 ```haskell
@@ -931,7 +934,7 @@ exposed-modules: Veldt.Counter,
 		 Veldt.Ice40.Rgb
 .....
 ```
-Let's begin editing the `Serial.hs` file. Fundamentally, we represent serializers and deserializers with a counter and a `Vec` from [Clash.Sized.Vector](http://hackage.haskell.org/package/clash-prelude-1.2.4/docs/Clash-Sized-Vector.html). This means we will be able to serialize or deserialize in two directions say left or right e.g. for a deserializer we could add elements at the beginning (left) or end (right) of the `Vec`. Additionally, we use a flag to indicate whether a deserializer is full or a serializer is empty.
+Let's begin editing the `Serial.hs` file. Fundamentally, we represent serializers and deserializers with a counter and a `Vec` from [Clash.Sized.Vector](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Sized-Vector.html). This means we will be able to serialize or deserialize in two directions say left or right e.g. for a deserializer we could add elements at the beginning (left) or end (right) of the `Vec`. Additionally, we use a flag to indicate whether a deserializer is full or a serializer is empty.
 ```haskell
 module Veldt.Serial
   ( Direction(..)
