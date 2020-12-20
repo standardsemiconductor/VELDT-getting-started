@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    branches: [ main ]
     # run at the start of every day
     - cron: '0 0 * * *'
 
