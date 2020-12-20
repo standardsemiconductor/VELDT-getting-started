@@ -44,7 +44,8 @@ common common-options
     NoImplicitPrelude
   ghc-options:
     -Wall -Wcompat
-
+    -haddock
+    
     -- Plugins to support type-level constraint solving on naturals
     -fplugin GHC.TypeLits.Extra.Solver
     -fplugin GHC.TypeLits.Normalise
@@ -67,7 +68,7 @@ common common-options
     veldt,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.2 && < 1.4,
+    clash-prelude >= 1.2.5 && < 1.4,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
@@ -80,6 +81,7 @@ library
 -- Builds the executable 'clash', with echo in scope
 executable clash
   main-is: bin/Clash.hs
+  default-language: Haskell2010
   Build-Depends: base, clash-ghc, echo
   if !os(Windows)
     ghc-options: -dynamic
@@ -87,6 +89,7 @@ executable clash
 -- Builds the executable 'clashi', with echo in scope
 executable clashi
   main-is: bin/Clashi.hs
+  default-language: Haskell2010
   if !os(Windows)
     ghc-options: -dynamic
   build-depends: base, clash-ghc, echo

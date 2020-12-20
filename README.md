@@ -163,11 +163,11 @@ We won't go through everything about this cabal file, but here are the highlight
 The common-section has three major parts:
   1. `default-extensions` extends the Haskell language, helps to reduce boilerplate, and cleans up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly. Instead, we want to explicitly import the Clash prelude. More information about language extensions can be found in the [GHC users guide](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html). 
   2. `ghc-options` turns on warnings and activates plugins.
-  3. `build-depends` lists our library dependencies. We use monad transformers from `mtl` and `lens` to zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the Clash compiler infer and manipulate types. More information can be found in the [clash-starters repository](https://github.com/clash-lang/clash-starters/tree/main/simple#simple-starter-project).
+  3. `build-depends` lists our library dependencies. We use monad transformers from `mtl` and `lens` to zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the Clash compiler infer and manipulate types. 
 
 In the library section we import the `common-options` and list `exposed-modules` which are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` with a file `Counter.hs`. This will have our counter source code.
 
-The last two parts define executables `clash` and `clashi` which we use to invoke the Clash compiler.
+The last two parts define executables `clash` and `clashi` which we use to invoke the Clash compiler. More information about setting up a Clash project can be found in the [clash-starters repository](https://github.com/clash-lang/clash-starters/tree/main/simple#simple-starter-project).
 
 Create a directory `Veldt` with a file `Counter.hs`.
 ```console
@@ -555,7 +555,7 @@ This is our first demo, we will use our PWM to blink an LED; it will light up re
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir -p demo/blinker && cd demo/blinker
 ```
-Once again, we use [clash-example-project](https://github.com/clash-lang/clash-compiler/tree/master/clash-starters/clash-example-project) as our starting template. Copy the `/bin` directory, `cabal.project`, and `clash-example-project.cabal`. Be sure to update the project name and dependencies.
+Once again, we use the [clash-starters simple](https://github.com/clash-lang/clash-starters/tree/main/simple) project as our starting template. Copy the `/bin` directory, `cabal.project`, and `simple.cabal`. Be sure to update the project name and dependencies.
 
 Your `cabal.project` file should look similar, note we also include the `veldt.cabal` file from our library; you may need to change the filepath to `veldt.cabal` depending on your file locations:
 ```
@@ -618,7 +618,8 @@ common common-options
     NoImplicitPrelude
   ghc-options:
     -Wall -Wcompat
-
+    -haddock
+ 
     -- Plugins to support type-level constraint solving on naturals
     -fplugin GHC.TypeLits.Extra.Solver
     -fplugin GHC.TypeLits.Normalise
@@ -641,7 +642,7 @@ common common-options
     veldt,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.2 && < 1.4,
+    clash-prelude >= 1.2.5 && < 1.4,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
@@ -654,6 +655,7 @@ library
 -- Builds the executable 'clash', with blinker in scope
 executable clash
   main-is: bin/Clash.hs
+  default-language: Haskell2010
   Build-Depends: base, clash-ghc, blinker
   if !os(Windows)
     ghc-options: -dynamic
@@ -661,6 +663,7 @@ executable clash
 -- Builds the executable 'clashi', with blinker in scope
 executable clashi
   main-is: bin/Clashi.hs
+  default-language: Haskell2010
   if !os(Windows)
     ghc-options: -dynamic
   build-depends: base, clash-ghc, blinker
@@ -1647,6 +1650,7 @@ common common-options
     NoImplicitPrelude
   ghc-options:
     -Wall -Wcompat
+    -haddock
 
     -- Plugins to support type-level constraint solving on naturals
     -fplugin GHC.TypeLits.Extra.Solver
@@ -1670,7 +1674,7 @@ common common-options
     veldt,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.2 && < 1.4,
+    clash-prelude >= 1.2.5 && < 1.4,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
@@ -1683,6 +1687,7 @@ library
 -- Builds the executable 'clash', with echo in scope
 executable clash
   main-is: bin/Clash.hs
+  default-language: Haskell2010
   Build-Depends: base, clash-ghc, echo
   if !os(Windows)
     ghc-options: -dynamic
@@ -1690,6 +1695,7 @@ executable clash
 -- Builds the executable 'clashi', with echo in scope
 executable clashi
   main-is: bin/Clashi.hs
+  default-language: Haskell2010
   if !os(Windows)
     ghc-options: -dynamic
   build-depends: base, clash-ghc, echo
