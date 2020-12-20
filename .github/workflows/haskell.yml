@@ -92,3 +92,15 @@ jobs:
     - name: Run tests
       working-directory: veldt
       run: cabal test all
+
+    - name: Blinker
+      working-directory: demo/blinker
+      run: make
+
+    - name: Echo
+      working-directory: demo/echo
+      run: make
+
+    - name: Uart Led
+      working-directory: demo/uart-led
+      run: make
