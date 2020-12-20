@@ -39,14 +39,14 @@ jobs:
         make
         sudo make install
 
-    - name: Checkout next-pnr
+    - name: Checkout nextpnr
       uses: actions/checkout@v2
       with:
-        repository: YosysHQ/next-pnr
-        path: next-pnr
+        repository: YosysHQ/nextpnr
+        path: nextpnr
 
-    - name: Install next-pnr
-      working-directory: next-pnr
+    - name: Install nextpnr
+      working-directory: nextpnr
       run: |
         cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
         make
