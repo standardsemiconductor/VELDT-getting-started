@@ -64,7 +64,8 @@ jobs:
         make
         sudo make install
 
-    - uses: actions/setup-haskell@v1
+    - name: Setup Haskell
+      uses: haskell/actions/setup@v1
       with:
         ghc-version: ${{ matrix.ghc }}
         cabal-version: ${{ matrix.cabal }}
