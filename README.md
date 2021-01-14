@@ -1888,7 +1888,7 @@ Here is a demo video using minicom:
 
 An alternative to minicom is using [serialport](https://github.com/standardsemiconductor/serialport), a Haskell library for serial port communication which is maintained by Standard Semiconductor and [available on Hackage](https://hackage.haskell.org/package/serialport).
 
-We create a client program [Main.hs]() which echoes bytes through the serial port:
+We create a client program [Main.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/echo/Main.hs) which echoes bytes through the serial port:
 ```haskell
 import System.Hardware.Serialport
 import System.IO
