@@ -1882,9 +1882,48 @@ foo@bar:~/VELDT-getting-started/demo/echo$ minicom
 ```
 It should say "Welcome to minicom" along with some information about options, port and instructions for help. Press any key character and you should see two copies appear in the minicom console. The first character is minicom's local echo, the second character will be from the FPGA, the echo! <kbd>Ctrl-a</kbd> <kbd>x</kbd> will exit minicom when you are finished testing out the echo.
 
-This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo). Here is a demo video:
+Here is a demo video using minicom:
 
 ![](demo/echo/echo.gif)
+
+An alternative to minicom is using [serialport](https://github.com/standardsemiconductor/serialport), a Haskell library for serial port communication which is maintained by Standard Semiconductor and [available on Hackage](https://hackage.haskell.org/package/serialport).
+
+We create a client program [Main.hs]() which echoes bytes through the serial port:
+```haskell
+import System.Hardware.Serialport
+import System.IO
+import Control.Monad (forever)
+import qualified Data.ByteString.Char8 as B
+
+main :: IO ()
+main = withSerial "/dev/ttyUSB0" settings $ \port -> do
+  hSetBuffering stdin NoBuffering
+  hSetBuffering stdout NoBuffering
+  forever $ echo port
+  where
+    echo port = do
+      send port . B.singleton =<< getChar
+      putChar . B.head =<< recv port 1
+      settings = defaultSerialSettings { commSpeed = CS19200 }
+```
+
+Now we add an executable to our [echo.cabal](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/echo/echo.cabal) file.
+```
+executable echo
+  main-is: Main.hs
+  default-language: Haskell2010
+  build-depends: base,
+                 serialport >= 0.5 && < 0.6,
+		 bytestring
+```
+
+Make sure the VELDT FPGA board is connected to your computer and running the echo demo. Run the executable and type some input to see it echo:
+```console
+foo@bar:~/VELDT-getting-started/demo/echo$ cabal run echo
+```
+When you are finished, press <kbd>Ctrl-c</kbd> to stop the program.
+
+This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo). 
 
 ## [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 > They walked down the hall of their soundproofed Happylife Home... this house which clothed and fed and rocked them to sleep and played and sang and was good to them. Their approach sensitized a switch somewhere and the nursery light flicked on when they came within ten feet of it. Similarly, behind them, in the halls, lights went on and off as they left them behind, with a soft automaticity.
