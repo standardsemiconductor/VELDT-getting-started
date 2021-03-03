@@ -286,7 +286,7 @@ import Control.Lens
 import Control.Monad.RWS
 import Veldt.Counter
 ```
-We export the type `PWM` and its smart constructor `mkPWM`. The monadic API consists of `pwm`, a PWM action, and a setter `setDuty` to mutate the duty cycle. In this module we will be using [lens](https://hackage.haskell.org/package/lens) to set, modify, and get sub-states. We usethe RWS monad from [mtl](https://hackage.haskell.org/package/mtl) because it allows zooming, magnification, and scribing. Although zooming etc. is not used in this module, it will help composition in the future as our library grows. Finally we import our counter module.
+We export the type `PWM` and its smart constructor `mkPWM`. The monadic API consists of `pwm`, a PWM action, and a setter `setDuty` to mutate the duty cycle. In this module we will be using [lens](https://hackage.haskell.org/package/lens) to set, modify, and get sub-states. We use the RWS monad from [mtl](https://hackage.haskell.org/package/mtl) because it allows zooming, magnification, and scribing. Although zooming etc. is not used in this module, it will help composition in the future as our library grows. Finally we import our counter module.
 
 Next we define the `PWM` type and its constructor. Note how we use `makeLenses` to automatically create lenses for our `PWM` type.
 ```haskell
@@ -548,7 +548,7 @@ Building library for veldt-0.1.0.0..
 [2 of 3] Compiling Veldt.Ice40.Rgb  ...
 [3 of 3] Compiling Veldt.PWM        ...
 ```
-You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We now move onto creating a blinker.
+You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We should mention that Standard Semiconductor also maintains [ice40-prim](https://github.com/standardsemiconductor/ice40-prim), a library of iCE40 FPGA primitives [available on Hackage](https://hackage.haskell.org/package/ice40-prim). It contains the RGB driver along with other primitives for you to use in your own projects. However, this guide is meant to be self-contained so we will continue to use the driver developed in this section. We now move onto creating a blinker.
 
 ### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 This is our first demo, we will use our PWM to blink an LED; it will light up red, green, blue, then cycle back to red. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal:
