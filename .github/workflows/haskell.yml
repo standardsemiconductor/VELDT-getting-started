@@ -44,6 +44,7 @@ jobs:
       with:
         repository: YosysHQ/nextpnr
         path: nextpnr
+        submodules: recursive
 
     - name: Install nextpnr
       working-directory: nextpnr
