@@ -132,7 +132,7 @@ common common-options
     interpolate,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.5 && < 1.4,
+    clash-prelude >= 1.2.5 && < 1.5,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
@@ -642,7 +642,7 @@ common common-options
     veldt,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.5 && < 1.4,
+    clash-prelude >= 1.4 && < 1.5,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
@@ -863,7 +863,7 @@ $(TOP).asc: $(TOP).json $(TOP).pcf
 
 $(TOP).json: $(TOP).hs
 	cabal run clash --write-ghc-environment-files=always -- $(TOP) --verilog
-	yosys -q -p "synth_ice40 -top $(TOP) -json $@ -abc2" verilog/$(TOP)/$(TOP)/*.v
+	yosys -q -p "synth_ice40 -top $(TOP) -json $@ -abc2" verilog/$(TOP).topEntity/*.v
 
 prog: $(TOP).bin
 	iceprog $<
@@ -1674,7 +1674,7 @@ common common-options
     veldt,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.5 && < 1.4,
+    clash-prelude >= 1.4 && < 1.5,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
@@ -1714,7 +1714,7 @@ $(TOP).asc: $(TOP).json $(TOP).pcf
 
 $(TOP).json: $(TOP).hs
 	cabal run clash --write-ghc-environment-files=always -- $(TOP) --verilog
-	yosys -q -p "synth_ice40 -top $(TOP) -json $@ -abc2" verilog/$(TOP)/$(TOP)/*.v
+	yosys -q -p "synth_ice40 -top $(TOP) -json $@ -abc2" verilog/$(TOP).topEntity/*.v
 
 prog: $(TOP).bin
 	iceprog $<
