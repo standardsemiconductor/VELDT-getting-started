@@ -308,7 +308,7 @@ setDuty d = do
   duty .= d
   ctr .= minBound
 ```
-We use the [`.=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Operators.html#v:.-61-) lens operator to set the `duty` cycle and reset the `ctr` to `minBound`. We use `setDuty` to change the duty cycle of the PWM. For example, suppose we have `setDuty 25 :: RWST r w (PWM (Index 100)) m ()`, then the PWM will operate at 25% duty cycle.
+We use the [`.=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Setter.html#v:.-61-) lens operator to set the `duty` cycle and reset the `ctr` to `minBound`. We use `setDuty` to change the duty cycle of the PWM. For example, suppose we have `setDuty 25 :: RWST r w (PWM (Index 100)) m ()`, then the PWM will operate at 25% duty cycle.
 
 Finally, we tackle the `pwm` function.
 ```haskell
@@ -318,7 +318,7 @@ pwm = do
   c <- ctr <<%= increment
   return $ boolToBit $ c < d
 ```
-First we bind `duty` to `d`. Next we `increment` the `ctr` and bind it's **old** value to `c` with [`<<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--60--37--61-). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
+First we bind `duty` to `d`. Next we `increment` the `ctr` and bind it's **old** value to `c` with [`<<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--60--37--61-). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
 
 Here is the complete `PWM.hs` source code:
 ```haskell
