@@ -669,7 +669,7 @@ executable clashi
   build-depends: base, clash-ghc, blinker
 ```
 
-With that out of the way, let's create a `Blinker.hs` file and open the file with a text editor.
+With that out of the way, let's create a [`Blinker.hs`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.hs) file and open the file with a text editor.
 ```console
 foo@bar:~/VELDT-getting-started/demo/blinker$ touch Blinker.hs
 ```
@@ -739,9 +739,9 @@ blinkerM = do
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
 ```
-First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. [`zoom`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:zoom) allows us to run a monadic action within larger state. Next, we get the current timer value and check if it equals `maxBound` with [`uses`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:uses) then bind the resulting `Bool` to `timerDone`. The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we `increment` it; remember that `increment` respects bounds. When `timerDone` is `True`, we `increment` the `color` and bind the new color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
+First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. [`zoom`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Combinators.html#v:zoom) allows us to run a monadic action within larger state. Next, we get the current timer value and check if it equals `maxBound` with [`uses`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Combinators.html#v:uses) then bind the resulting `Bool` to `timerDone`. The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we `increment` it; remember that `increment` respects bounds. When `timerDone` is `True`, we `increment` the `color` and bind the new color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
 
-Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
+Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
@@ -762,11 +762,11 @@ topEntity clk = withClockResetEnable clk rst enableGen blinker
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Blinker"
 ```
-Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Signal.html#v:withClockResetEnable).
+Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Signal.html#v:withClockResetEnable).
 
-`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
+`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
 
-We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
+We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
 
 Here is the complete `Blinker.hs` source code:
 ```haskell
