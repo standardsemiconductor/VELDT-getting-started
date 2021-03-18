@@ -729,9 +729,8 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- uses timer (== maxBound)
-  timer %= C.increment
-  when timerDone $ do
+  t <- timer <<%= C.increment
+  when (t == maxBound) $ do
     c' <- color <%= C.increment
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
@@ -739,7 +738,11 @@ blinkerM = do
     zoom bluePWM  $ P.setDuty blueDuty'
   return (r, g, b)
 ```
-First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. [`zoom`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Combinators.html#v:zoom) allows us to run a monadic action within larger state. Next, we get the current timer value and check if it equals `maxBound` with [`uses`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Combinators.html#v:uses) then bind the resulting `Bool` to `timerDone`. The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. Having checked the timer, we `increment` it; remember that `increment` respects bounds. When `timerDone` is `True`, we `increment` the `color` and bind the new color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
+First we run each PWM with `pwm` and bind the output `Bit` to `r`, `g`, and `b`. [`zoom`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Combinators.html#v:zoom) allows us to run a monadic action within larger state. 
+
+Next, we `increment` the timer while binding the **old** value to `t` using the [`<<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Operators.html#v:-60--60--37--61-) operator. 
+
+The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. When `t` is equal to `maxBound` (in this case 23,999,999), we `increment` the `color` and bind the **new** color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
 
 Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
@@ -813,9 +816,8 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- uses timer (== maxBound)
-  timer %= C.increment
-  when timerDone $ do
+  t <- timer <<%= C.increment
+  when (t == maxBound) $ do
     c' <- color <%= C.increment
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'

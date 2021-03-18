@@ -41,9 +41,8 @@ blinkerM = do
   r <- zoom redPWM   P.pwm
   g <- zoom greenPWM P.pwm
   b <- zoom bluePWM  P.pwm
-  timerDone <- uses timer (== maxBound)
-  timer %= C.increment
-  when timerDone $ do
+  t <- timer <<%= C.increment
+  when (t == maxBound) $ do
     c' <- color <%= C.increment
     let (redDuty', greenDuty', blueDuty') = toPWM c'
     zoom redPWM   $ P.setDuty redDuty'
