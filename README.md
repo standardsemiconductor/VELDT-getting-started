@@ -1906,7 +1906,7 @@ main = withSerial "/dev/ttyUSB0" settings $ \port -> do
     echo port = do
       send port . B.singleton =<< getChar
       putChar . B.head =<< recv port 1
-      settings = defaultSerialSettings { commSpeed = CS19200 }
+    settings = defaultSerialSettings { commSpeed = CS19200 }
 ```
 
 Now we add an executable to our [echo.cabal](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/echo/echo.cabal) file.
