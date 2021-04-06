@@ -200,7 +200,7 @@ decrement a
   | a == minBound = maxBound
   | otherwise = pred a
 ```
-Note, the `increment` and `decrement` functions have typeclass constraints `(Bounded a, Enum a, Eq a)`. The compiler will make sure the argument `a` is an instance of `Bounded`, `Enum`, and `Eq`. The typeclass constraint [`Bounded`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-HaskellPrelude.html#t:Bounded) says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise [`Eq`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-HaskellPrelude.html#t:Eq) lets us compare equality `==` and [`Enum`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-HaskellPrelude.html#t:Enum) provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. 
+Note, the `increment` and `decrement` functions have typeclass constraints `(Bounded a, Enum a, Eq a)`. The compiler will make sure the argument `a` is an instance of `Bounded`, `Enum`, and `Eq`. The typeclass constraint [`Bounded`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-HaskellPrelude.html#t:Bounded) says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise [`Eq`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-HaskellPrelude.html#t:Eq) lets us compare equality `==` and [`Enum`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-HaskellPrelude.html#t:Enum) provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. 
 
 When designing your own counter functions be careful when using `succ` or `pred`. For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6)`, but `succ (4 :: Index 5)` is undefined and out of bounds because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`; that is why we check for `maxBound` and `minBound` states in `increment` and `decrement`.
 
@@ -318,7 +318,7 @@ pwm = do
   c <- ctr <<%= increment
   return $ boolToBit $ c < d
 ```
-First we bind `duty` to `d`. Next we `increment` the `ctr` and bind it's **old** value to `c` with [`<<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--60--37--61-). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
+First we bind `duty` to `d`. Next we `increment` the `ctr` and bind it's **old** value to `c` with [`<<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--60--37--61-). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
 
 Here is the complete `PWM.hs` source code:
 ```haskell
@@ -744,7 +744,7 @@ Next, we `increment` the timer while binding the **old** value to `t` using the 
 
 The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. When `t` is equal to `maxBound` (in this case 23,999,999), we `increment` the `color` and bind the **new** color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
 
-Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
+Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
@@ -765,11 +765,11 @@ topEntity clk = withClockResetEnable clk rst enableGen blinker
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Blinker"
 ```
-Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Signal.html#v:withClockResetEnable).
+Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Signal.html#v:withClockResetEnable).
 
-`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
+`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
 
-We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.4.0/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
+We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
 
 Here is the complete `Blinker.hs` source code:
 ```haskell
@@ -939,7 +939,7 @@ exposed-modules: Veldt.Counter,
 		 Veldt.Ice40.Rgb
 .....
 ```
-Let's begin editing the `Serial.hs` file. Fundamentally, we represent serializers and deserializers with a counter and a `Vec` from [Clash.Sized.Vector](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Sized-Vector.html). This means we will be able to serialize or deserialize in two directions say left or right e.g. for a deserializer we could add elements at the beginning (left) or end (right) of the `Vec`. Additionally, we use a flag to indicate whether a deserializer is full or a serializer is empty.
+Let's begin editing the `Serial.hs` file. Fundamentally, we represent serializers and deserializers with a counter and a `Vec` from [Clash.Sized.Vector](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Sized-Vector.html). This means we will be able to serialize or deserialize in two directions say left or right e.g. for a deserializer we could add elements at the beginning (left) or end (right) of the `Vec`. Additionally, we use a flag to indicate whether a deserializer is full or a serializer is empty.
 ```haskell
 module Veldt.Serial
   ( Direction(..)
@@ -1810,7 +1810,7 @@ echo = echoMealy <^> mkEcho
     echoMealy s i = let ((), s', tx) = runRWS echoM (U.Rx i) s
                     in (s', U.unTx tx)
 ```
-[`<^>`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:-60--94--62-) is the infix version of `mealy`; it takes two arguments
+[`<^>`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Prelude.html#v:-60--94--62-) is the infix version of `mealy`; it takes two arguments
   1. the transfer function `s -> i -> (s, o)`
   2. the initial state
 
@@ -1828,7 +1828,7 @@ topEntity clk = withClockResetEnable clk rst enableGen echo
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Echo"
 ```
-We annotate the inputs and outputs for easy usage with our pin constraint file. Additionally, [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) from [`Clash.Annotations.TH`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Annotations-TH.html) automatically annotates our function with specified input, output, and module names.
+We annotate the inputs and outputs for easy usage with our pin constraint file. Additionally, [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) from [`Clash.Annotations.TH`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Annotations-TH.html) automatically annotates our function with specified input, output, and module names.
 
 Next, edit the `Echo.pcf` file to match our `topEntity` declaration. We only need three pins so we remove the ones we don't need. The `generic_pcf.pcf` which we copied from has all the pins and helpful comments to discern their function. We need pin 35 `12Mhz Xtal` (12Mhz crystal oscillator) for `clk`. We need pin 17 for `tx` and pin 15 for `rx`. Note `#` starts a comment.
 Your `Echo.pcf` file should look similar:
@@ -1995,7 +1995,7 @@ setRgb (r, g, b) = do
   zoom bluePWM  $ setDuty b
 ```
 
-The first function `pwmRgb` uses [`zoom`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Combinators.html#v:zoom) to get at each `PWM` sub-state then runs `pwm`. We collect the outputs (each having type `Bit`) and return the triple as type `Rgb`. Remeber `Rgb` is a triple-tuple of `Bit`s  annotated "red", "green", and "blue". We could have used `(Bit, Bit, Bit)` instead of `Rgb` but there is no need when `Rgb` is more descriptive and already defined in `Veldt.Ice40.Rgb`.
+The first function `pwmRgb` uses [`zoom`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Combinators.html#v:zoom) to get at each `PWM` sub-state then runs `pwm`. We collect the outputs (each having type `Bit`) and return the triple as type `Rgb`. Remeber `Rgb` is a triple-tuple of `Bit`s  annotated "red", "green", and "blue". We could have used `(Bit, Bit, Bit)` instead of `Rgb` but there is no need when `Rgb` is more descriptive and already defined in `Veldt.Ice40.Rgb`.
 
 The second function `setRgb` takes a triple of duty cycles (parameterized by `a`) and updates each individual PWM's duty cycle. We use `zoom` to get at each PWM sub-state, then use `setDuty` for each color's PWM.
 
@@ -2151,9 +2151,9 @@ uartLed = do
       timer .= 0
     Color c -> zoom pwmRgb $ P.setRgb $ fromColor c
 ```
-Conceptually, we break the transfer function `uartLed` into three major parts. In the first part we check if the LED is currently `On`. When it is on, we output the result of `P.pwmRgb` with [`tell`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-Writer-Lazy.html#v:tell). Note, `tell` requires a monoid as an argument. That is why we wrap `R.Rgb` with the [`First`](https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-Monoid.html#t:First) monoid.
+Conceptually, we break the transfer function `uartLed` into three major parts. In the first part we check if the LED is currently `On`. When it is on, we output the result of `P.pwmRgb` with [`tell`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-Writer-Lazy.html#v:tell). Note, `tell` requires a monoid as an argument. That is why we wrap `R.Rgb` with the [`First`](https://hackage.haskell.org/package/base-4.15.0.0/docs/Data-Monoid.html#t:First) monoid.
 
-In the second part, we check if the LED needs to be toggled. We get the speed and project it to it's period using `toPeriod`. Then, when the `timer` is equal to the period we `toggle` the `led` and reset the counter. Remember, `incrementUnless` takes care of resetting the timer if it is equal to the period. We use [`<<%=`](https://hackage.haskell.org/package/lens-4.19.2/docs/Control-Lens-Lens.html#v:-60--60--37--61-) to modify the timer and bind `t` to it's old value. 
+In the second part, we check if the LED needs to be toggled. We get the speed and project it to it's period using `toPeriod`. Then, when the `timer` is equal to the period we `toggle` the `led` and reset the counter. Remember, `incrementUnless` takes care of resetting the timer if it is equal to the period. We use [`<<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--60--37--61-) to modify the timer and bind `t` to it's old value. 
 
 In the third part, we read a byte from the UART, encode it into an instruction, then execute the instruction. If it is a `Speed` instruction, we increment speed and reset the timer to zero. If it is a `Color` instruction, we update the PWM RGB duty cycle with `setRgb`.
 
@@ -2169,7 +2169,7 @@ uartLedS = R.rgb . fmap (fromMaybe (0, 0, 0) . getFirst) . mealy uartLedMealy mk
                        in (s', o)
 ```
 
-We "run" the `uartLed` transfer function using [`runRWS`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) and rearrange our types for [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.2.5/docs/Clash-Prelude.html#v:mealy). We also unwrap the output signal, a RGB-tuple of PWM outputs, with [`getFirst`](https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-Monoid.html#v:getFirst) then `fromMaybe (0, 0, 0)`. If the LED is off then the output signal is `mempty` or `First Nothing`. After unwrapping, we end up feeding `(0, 0, 0)` into `R.rgb` which turns the LED off. If the LED is on then the output signal is `First (Just (pwmR, pwmG, pwmB))`. After unwrapping, we end up feeding `(pwmR, pwmG, pwmB)` into `R.rgb`, driving the LED!
+We "run" the `uartLed` transfer function using [`runRWS`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) and rearrange our types for [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.4.1/docs/Clash-Prelude.html#v:mealy). We also unwrap the output signal, a RGB-tuple of PWM outputs, with [`getFirst`](https://hackage.haskell.org/package/base-4.15.0.0/docs/Data-Monoid.html#v:getFirst) then `fromMaybe (0, 0, 0)`. If the LED is off then the output signal is `mempty` or `First Nothing`. After unwrapping, we end up feeding `(0, 0, 0)` into `R.rgb` which turns the LED off. If the LED is on then the output signal is `First (Just (pwmR, pwmG, pwmB))`. After unwrapping, we end up feeding `(pwmR, pwmG, pwmB)` into `R.rgb`, driving the LED!
 
 Last, we define the top entity:
 ```haskell
