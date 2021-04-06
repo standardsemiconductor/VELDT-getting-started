@@ -161,7 +161,7 @@ executable clashi
 We won't go through everything about this cabal file, but here are the highlights.
 
 The common-section has three major parts:
-  1. `default-extensions` extends the Haskell language, helps to reduce boilerplate, and cleans up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly. Instead, we want to explicitly import the Clash prelude. More information about language extensions can be found in the [GHC users guide](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html). 
+  1. `default-extensions` extends the Haskell language, helps to reduce boilerplate, and cleans up syntax. `NoImplicitPrelude` is especially important, it says we don't want the standard Haskell prelude imported implicitly. Instead, we want to explicitly import the Clash prelude. More information about language extensions can be found in the [GHC users guide](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts.html). 
   2. `ghc-options` turns on warnings and activates plugins.
   3. `build-depends` lists our library dependencies. We use monad transformers from `mtl` and `lens` to zoom and mutate substates. `interpolate` is used for inline primitives when we need Yosys to infer hardware IP. `base` provides standard haskell functions and types. The `ghc-typelits...` packages are plugins to help the Clash compiler infer and manipulate types. 
 
@@ -452,7 +452,7 @@ rgbPrim
   -> Signal dom (Bit, Bit, Bit)
 rgbPrim !_ !_ !_ !_ !_ !_ !_ = pure (0, 0, 0)
 ```
-Although we do not provide a real implementation for the the primitive in Haskell, it is good practice to do so and helps when testing and modeling. We use [bang patterns](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#bang-patterns-and-strict-haskell) on the arguments to ensure our primitive is strictly evaluated. Also, note the type of `rgbPrim` matches exactly to the inlined primitive type and has a `NOINLINE` annotation.
+Although we do not provide a real implementation for the the primitive in Haskell, it is good practice to do so and helps when testing and modeling. We use [bang patterns](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts.html#bang-patterns-informal) on the arguments to ensure our primitive is strictly evaluated. Also, note the type of `rgbPrim` matches exactly to the inlined primitive type and has a `NOINLINE` annotation.
 
 Instead of constantly writing `(Bit, Bit, Bit)` for our RGB tuple, let's define a type synonym with some tags which are useful when constraining pins.
 ```haskell
