@@ -68,7 +68,7 @@ common common-options
     veldt,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.4 && < 1.5,
+    clash-prelude >= 1.4 && < 1.7,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
