@@ -67,7 +67,7 @@ common common-options
     interpolate,
     
     -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.2.5 && < 1.5,
+    clash-prelude >= 1.2.5 && < 1.7,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
     ghc-typelits-knownnat
