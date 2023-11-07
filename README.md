@@ -22,7 +22,7 @@
 
 > *The Veldt* by Ray Bradbury 
 
-This is an opinionated guide to hardware design from first principles using Haskell and VELDT.  We assume you are using the [VELDT FPGA development board](https://www.standardsemiconductor.com) available to order from [Amazon](https://www.amazon.com/dp/B08F9T8DFT?ref=myi_title_dp). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
+This is an opinionated guide to hardware design from first principles using Haskell and VELDT. We assume you are using the VELDT FPGA development board available to order from [standardsemiconductor.com](https://www.standardsemiconductor.com). We also assume you are using Linux, but this is only for getting the tools setup and running the examples. 
   
 The code included in the examples is written in Haskell and compiled to Verilog using [Clash](https://clash-lang.org/). We find hardware design with Haskell to be an enriching experience, and if you are experimenting with HDLs or just starting out with hardware, give it a shot. As hardware designs scale so too does the language and the ability to abstractly compose machines which makes designing them a blast! Visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#clash) repo for instructions on installation and setup of Haskell and Clash tools.
   
