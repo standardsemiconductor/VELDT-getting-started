@@ -65,7 +65,9 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: YosysHQ/yosys
+        ref: main
         path: yosys
+        submodules: true
 
     - name: Install yosys
       working-directory: yosys
