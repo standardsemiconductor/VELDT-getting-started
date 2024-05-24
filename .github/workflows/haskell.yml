@@ -14,18 +14,10 @@ jobs:
     runs-on: ${{ matrix.os }} 
     strategy:
       matrix:
-        ghc: ['8.8', '8.10', '9.0']
-        cabal: ['3.0', '3.2', '3.4']
+        ghc: ['9.0']
         os: [ubuntu-20.04]
-        exclude:
-                # cabal 3.0 does not support GHC 9.0
-                - ghc: '9.0'
-                  cabal: '3.0'
-                # cabal 3.2 does not support GHC 9.0
-                - ghc: '9.0'
-                  cabal: '3.2'
 
-    name: ${{ matrix.os }} GHC ${{ matrix.ghc }} Cabal ${{ matrix.cabal }}
+    name: ${{ matrix.os }} GHC ${{ matrix.ghc }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -72,14 +64,13 @@ jobs:
     - name: Install yosys
       working-directory: yosys
       run: |
-        make
+        make -j$(nproc)
         sudo make install
 
     - name: Setup Haskell
-      uses: haskell/actions/setup@v1
+      uses: haskell-actions/setup@v2
       with:
         ghc-version: ${{ matrix.ghc }}
-        cabal-version: ${{ matrix.cabal }}
 
     - name: Cache
       uses: actions/cache@v1
@@ -98,6 +89,7 @@ jobs:
       run: |
         cabal update
         cabal build --only-dependencies --enable-tests --enable-benchmarks
+
     - name: Build
       working-directory: veldt
       run: cabal build --enable-tests --enable-benchmarks all
