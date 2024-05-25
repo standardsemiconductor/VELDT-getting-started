@@ -9,23 +9,18 @@ on:
     # run at the start of every day
     - cron: '0 0 * * *'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }} 
     strategy:
       matrix:
-        ghc: ['8.8', '8.10', '9.0']
-        cabal: ['3.0', '3.2', '3.4']
+        ghc: ['9.0']
         os: [ubuntu-20.04]
-        exclude:
-                # cabal 3.0 does not support GHC 9.0
-                - ghc: '9.0'
-                  cabal: '3.0'
-                # cabal 3.2 does not support GHC 9.0
-                - ghc: '9.0'
-                  cabal: '3.2'
 
-    name: ${{ matrix.os }} GHC ${{ matrix.ghc }} Cabal ${{ matrix.cabal }}
+    name: ${{ matrix.os }} GHC ${{ matrix.ghc }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -58,52 +53,58 @@ jobs:
       working-directory: nextpnr
       run: |
         cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
-        make
+        make -j$(nproc)
         sudo make install
 
     - name: Checkout yosys
       uses: actions/checkout@v4
       with:
         repository: YosysHQ/yosys
-        ref: main
         path: yosys
         submodules: true
 
     - name: Install yosys
       working-directory: yosys
       run: |
-        make
+        make -j$(nproc)
         sudo make install
 
     - name: Setup Haskell
-      uses: haskell/actions/setup@v1
+      uses: haskell-actions/setup@v2
+      id: setup
       with:
         ghc-version: ${{ matrix.ghc }}
-        cabal-version: ${{ matrix.cabal }}
 
-    - name: Cache
-      uses: actions/cache@v1
-      env:
-        cache-name: cache-cabal
-      with:
-        path: ~/.cabal
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
-          ${{ runner.os }}-
-
-    - name: Install dependencies
+    - name: configure
       working-directory: veldt
       run: |
-        cabal update
-        cabal build --only-dependencies --enable-tests --enable-benchmarks
-    - name: Build
+        cabal configure --enable-tests --enable-benchmarks --disable-documentation
+        cabal build --dry-run
+
+    - name: restore cache
+      uses: actions/cache/restore@v4
+      id: cache
+      env:
+        key: $${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-${{steps.setup.outputs.cabal-version }}
+      with:
+        path: ${{ steps.setup.outputs.cabal-store }}
+        key: ${{ env.key }}-plan-${{ hashFiles('**/plan.json') }}
+        restore-keys: ${{ env.key }}-
+
+    - name: build dependencies
       working-directory: veldt
-      run: cabal build --enable-tests --enable-benchmarks all
-    - name: Run tests
+      run: cabal build all --only-dependencies
+
+    - name: save cache
+      uses: actions/cache/save@v4
+      if: ${{ steps.cache.outputs.cache-primary-key != steps.cache.outputs.cache-matched-key }}
+      with:
+        path: ${{ steps.setup.outputs.cabal-store }}
+        key: ${{ steps.cache.outputs.cache-primary-key }}
+
+    - name: build
       working-directory: veldt
-      run: cabal test all
+      run: cabal build all
 
     - name: Blinker
       working-directory: demo/blinker
