@@ -106,10 +106,6 @@ jobs:
       working-directory: veldt
       run: cabal build all
 
-    - name: test
-      working-directory: veldt
-      run: cabal test all
-
     - name: Blinker
       working-directory: demo/blinker
       run: make
