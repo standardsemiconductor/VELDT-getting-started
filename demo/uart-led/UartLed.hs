@@ -3,9 +3,11 @@ module UartLed where
 
 import Clash.Prelude
 import Clash.Annotations.TH
+import Control.Monad
 import Control.Monad.RWS
 import Control.Lens hiding (Index)
 import Data.Maybe (fromMaybe)
+import Data.Monoid
 import Veldt.Counter
 import qualified Veldt.PWM.Rgb   as P
 import qualified Veldt.Ice40.Rgb as R

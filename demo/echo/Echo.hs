@@ -3,6 +3,7 @@ module Echo where
 
 import Clash.Prelude
 import Clash.Annotations.TH
+import Control.Monad
 import Control.Monad.RWS
 import Control.Lens
 import qualified Veldt.Uart as U
