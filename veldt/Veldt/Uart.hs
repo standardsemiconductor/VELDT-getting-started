@@ -11,6 +11,7 @@ module Veldt.Uart
   ) where
 
 import Clash.Prelude hiding (read)
+import Control.Monad
 import Control.Monad.RWS
 import Control.Lens hiding ((:>))
 import qualified Veldt.Counter as C

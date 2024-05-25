@@ -2,6 +2,7 @@ module Blinker where
 
 import Clash.Prelude
 import Clash.Annotations.TH
+import Control.Monad
 import Control.Monad.RWS
 import Control.Lens hiding (Index)
 import qualified Veldt.Counter   as C
