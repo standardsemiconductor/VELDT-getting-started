@@ -1,23 +1,23 @@
 # Where Lions Roam: Haskell & Hardware on the VELDT
 
 ## Table of Contents
-1. [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#section-1-introduction--setup)
-2. [Section 2: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-fiat-lux)
-   1. [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#learning-to-count)
-   2. [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#its-a-vibe-pwm)
-   3. [Drive: RGB Primitive](https://github.com/standardsemiconductor/VELDT-getting-started#drive-rgb-primitive)
-   4. [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#fiat-lux-blinker)
-3. [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar)
-   1. [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#serial-for-breakfast)
-   2. [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#uart-my-art)
-   3. [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#roar-echo)
-4. [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-happylife)
-   1. [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#dry-pwm)
-   2. [Happylife: UART LED](https://github.com/standardsemiconductor/VELDT-getting-started#happylife-uart-led)
+1. [Section 1: Introduction & Setup](#section-1-introduction--setup)
+2. [Section 2: Fiat Lux](#section-2-fiat-lux)
+   1. [Learning to Count](#learning-to-count)
+   2. [Its a Vibe: PWM](#its-a-vibe-pwm)
+   3. [Drive: RGB Primitive](#drive-rgb-primitive)
+   4. [Fiat Lux: Blinker](#fiat-lux-blinker)
+3. [Section 3: Roar](#section-3-roar)
+   1. [Serial for Breakfast](#serial-for-breakfast)
+   2. [UART My Art](#uart-my-art)
+   3. [Roar: Echo](#roar-echo)
+4. [Section 4: Happylife](#section-4-happylife)
+   1. [DRY PWM](#dry-pwm)
+   2. [Happylife: UART LED](#happylife-uart-led)
    
 **Clicking on any header within this document will return to Table of Contents** 
 
-## [Section 1: Introduction & Setup](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+## [Section 1: Introduction & Setup](#table-of-contents)
 > And here were the lions now, fifteen feet away, so real, so feverishly and startlingly real that you could feel the prickling fur on your hand, and your mouth was stuffed with the dusty upholstery smell of their heated pelts, and the yellow of them was in your eyes like the yellow of an exquisite French tapestry, the yellows of lions and summer grass, and the sound of the matted lion lungs exhaling on the silent noontide, and the smell of meat from the panting, dripping mouths.
 
 > *The Veldt* by Ray Bradbury 
@@ -28,25 +28,25 @@ The code included in the examples is written in Haskell and compiled to Verilog 
   
 We use the Project IceStorm flow for synthesis, routing, and programming. These are excellent, well-maintained open source tools. For installation and setup instructions visit the [VELDT-info](https://github.com/standardsemiconductor/VELDT-info#project-icestorm) repo.
 
-This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 2](https://github.com/standardsemiconductor/VELDT-getting-started#section-2-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 3](https://github.com/standardsemiconductor/VELDT-getting-started#section-3-roar) covers serializers and deserializers which are used to construct a UART. [Section 4](https://github.com/standardsemiconductor/VELDT-getting-started#section-4-happylife) ties together concepts from the previous sections with a demo of controlling the LED via UART. In the future we hope to add sections which demonstrate how to interact with the memory provided by VELDT, design a simple CPU with a custom ISA, and construct a System-On-Chip (SoC).
+This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 2](#section-2-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 3](#section-3-roar) covers serializers and deserializers which are used to construct a UART. [Section 4](#section-4-happylife) ties together concepts from the previous sections with a demo of controlling the LED via UART. In the future we hope to add sections which demonstrate how to interact with the memory provided by VELDT, design a simple CPU with a custom ISA, and construct a System-On-Chip (SoC).
 
-By the end of the guide, you will have a library of commonly used hardware components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/veldt) and [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directories.
+By the end of the guide, you will have a library of commonly used hardware components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](veldt/) and [demo](demo/) directories.
 
 Finally, if you have any suggestions, comments, discussions, edits, additions etc. please open an issue in this repo. We value any and all contributions. Let's get started!
 
-## [Section 2: Fiat Lux](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+## [Section 2: Fiat Lux](#table-of-contents)
 > The nursery was silent. It was empty as a jungle glade at hot high noon. The walls were blank and two dimensional. Now, as George and Lydia Hadley stood in the center of the room, the walls began to purr and recede into crystalline distance, it seemed, and presently an African veldt appeared, in three dimensions, on all sides, in color reproduced to the final pebble and bit of straw. The ceiling above them became a deep sky with a hot yellow sun.
 
 > *The Veldt* by Ray Bradbury
 
 In this section we start by building a counter then, using the counter, construct a PWM. Equipped with our counter and PWM, we use the RGB LED Driver IP to create our first running application on VELDT; a blinker!
 
-### [Learning to Count](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [Learning to Count](#table-of-contents)
 We begin by creating a directory called "veldt" to contain our haskell library:
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir veldt && cd veldt
 ```
-We use the [clash-example-project](https://github.com/clash-lang/clash-starters/tree/main/simple) as a template. Specifically, we copy the `bin/`, `cabal.project`, and `simple.cabal` into our `veldt` directory. We need to change the project name in the `cabal.project` and `veldt.cabal` files from `simple` to `veldt`. Additionally, in the `veldt.cabal` file we add `mtl`, `lens`, and `interpolate` to the build-depends section. 
+We use the [clash-example-project](https://github.com/clash-lang/clash-starters/simple) as a template. Specifically, we copy the `bin/`, `cabal.project`, and `simple.cabal` into our `veldt` directory. We need to change the project name in the `cabal.project` and `veldt.cabal` files from `simple` to `veldt`. Additionally, in the `veldt.cabal` file we add `mtl`, `lens`, and `interpolate` to the build-depends section. 
 
 Your `cabal.project` file should look similar:
 ```
@@ -167,7 +167,7 @@ The common-section has three major parts:
 
 In the library section we import the `common-options` and list `exposed-modules` which are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` with a file `Counter.hs`. This will have our counter source code.
 
-The last two parts define executables `clash` and `clashi` which we use to invoke the Clash compiler. More information about setting up a Clash project can be found in the [clash-starters repository](https://github.com/clash-lang/clash-starters/tree/main/simple#simple-starter-project).
+The last two parts define executables `clash` and `clashi` which we use to invoke the Clash compiler. More information about setting up a Clash project can be found in the [clash-starters repository](https://github.com/clash-lang/clash-starters/simple#simple-starter-project).
 
 Create a directory `Veldt` with a file `Counter.hs`.
 ```console
@@ -200,7 +200,7 @@ decrement a
   | a == minBound = maxBound
   | otherwise = pred a
 ```
-Note, the `increment` and `decrement` functions have typeclass constraints `(Bounded a, Enum a, Eq a)`. The compiler will make sure the argument `a` is an instance of `Bounded`, `Enum`, and `Eq`. The typeclass constraint [`Bounded`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-HaskellPrelude.html#t:Bounded) says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise [`Eq`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-HaskellPrelude.html#t:Eq) lets us compare equality `==` and [`Enum`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-HaskellPrelude.html#t:Enum) provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. 
+Note, the `increment` and `decrement` functions have typeclass constraints `(Bounded a, Enum a, Eq a)`. The compiler will make sure the argument `a` is an instance of `Bounded`, `Enum`, and `Eq`. The typeclass constraint [`Bounded`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-HaskellPrelude.html#t:Bounded) says our counter has a minimum and maximum value which gives us `minBound` and `maxBound`. Likewise [`Eq`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-HaskellPrelude.html#t:Eq) lets us compare equality `==` and [`Enum`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-HaskellPrelude.html#t:Enum) provides `succ` (successor) and `pred` (predecessor) functions on our polymorphic type `a`. Without these constraints the compiler would complain that it could not deduce the required typeclass. 
 
 When designing your own counter functions be careful when using `succ` or `pred`. For example `succ 0 == (1 :: BitVector 8)` and `pred 4 == (3 :: Index 6)`, but `succ (4 :: Index 5)` is undefined and out of bounds because the type `Index 5` only has inhabitants `0`,`1`,`2`,`3`, and `4`; that is why we check for `maxBound` and `minBound` states in `increment` and `decrement`.
 
@@ -255,9 +255,9 @@ foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ...
 [1 of 1] Compiling Veldt.Counter    ...
 ```
-You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Counter.hs). We can now use our counter API to create a PWM.
+You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/veldt/Veldt/Counter.hs). We can now use our counter API to create a PWM.
 
-### [Its a Vibe: PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [Its a Vibe: PWM](#table-of-contents)
 Pulse Width Modulation or PWM is used to drive our LED. We use a technique called [time proportioning](https://en.wikipedia.org/wiki/Pulse-width_modulation#Time_proportioning) to generate the PWM signal with our counter. To begin let's create a `PWM.hs` file in the `Veldt` directory.
 ```console
 foo@bar:~/VELDT-getting-started/veldt/Veldt$ touch PWM.hs
@@ -318,7 +318,7 @@ pwm = do
   c <- ctr <<%= increment
   return $ boolToBit $ c < d
 ```
-First we bind `duty` to `d`. Next we `increment` the `ctr` and bind it's **old** value to `c` with [`<<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--60--37--61-). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
+First we bind `duty` to `d`. Next we `increment` the `ctr` and bind it's **old** value to `c` with [`<<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--60--37--61-). Last, we compare `c < d`, convert the [`boolToBit`](https://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Class-BitPack.html#v:boolToBit), and `return` the bit. `boolToBit` simply maps `True` to `1 :: Bit` and `False` to `0 :: Bit`. Because we compare the `duty` `d` to the counter `c` with `<`, our type signature requires the underlying counter type `a` to be a member of the `Ord` typeclass. For example, if we have `pwm :: RWST r w (PWM (Index 4)) m Bit` and `duty` is bound to `3 :: Index 4`, (75% duty cycle, remember `Index 4` has inhabitants 0, 1, 2, 3), the output of `pwm` when run as a mealy machine would be: ... 1, 1, 1, 0, 1, 1, 1, 0, ... .
 
 Here is the complete `PWM.hs` source code:
 ```haskell
@@ -364,10 +364,10 @@ foo@bar:~/VELDT-getting-started/veldt$ cabal build
 [1 of 2] Compiling Veldt.Counter ...
 [2 of 2] Compiling Veldt.PWM     ...
 ```
-You can find the full PWM source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP.
+You can find the full PWM source code [here](veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP.
 
-### [Drive: RGB Primitive](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
-We need one more component before starting our demo, a RGB (Red, Green, Blue) LED Driver. It takes 3 PWM signals (R, G, B) to drive the LED. We use the Verilog template from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info/blob/master/ICE40LEDDriverUsageGuide.pdf). Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP (SB_RGBA_DRV) from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `Rgb.hs` file which will be our RGB Driver primitive.
+### [Drive: RGB Primitive](#table-of-contents)
+We need one more component before starting our demo, a RGB (Red, Green, Blue) LED Driver. It takes 3 PWM signals (R, G, B) to drive the LED. We use the Verilog template from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info/ICE40LEDDriverUsageGuide.pdf). Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP (SB_RGBA_DRV) from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `Rgb.hs` file which will be our RGB Driver primitive.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/Rgb.hs
 ```
@@ -438,7 +438,7 @@ Now we create the primitive.
   ]
   |]) #-}
 ```
-When writing primitives be sure the function name, module name, and black box name all match. The template is Verilog from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info/blob/master/ICE40LEDDriverUsageGuide.pdf). The documentation for writing primitives is on the [clash-prelude](https://hackage.haskell.org/package/clash-prelude) hackage page in the `Clash.Annotations.Primitive` module. Basically, the `SB_RGBA_DRV` module takes 3 PWM input signals and outputs 3 LED driver signals. We adopt the style to prefix any primitive functions with `Prim`. Let's give a Haskell function stub for the primitive.
+When writing primitives be sure the function name, module name, and black box name all match. The template is Verilog from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info//ICE40LEDDriverUsageGuide.pdf). The documentation for writing primitives is on the [clash-prelude](https://hackage.haskell.org/package/clash-prelude) hackage page in the `Clash.Annotations.Primitive` module. Basically, the `SB_RGBA_DRV` module takes 3 PWM input signals and outputs 3 LED driver signals. We adopt the style to prefix any primitive functions with `Prim`. Let's give a Haskell function stub for the primitive.
 ```haskell
 {-# NOINLINE rgbDriverPrim #-}
 rgbPrim
@@ -548,14 +548,14 @@ Building library for veldt-0.1.0.0..
 [2 of 3] Compiling Veldt.Ice40.Rgb  ...
 [3 of 3] Compiling Veldt.PWM        ...
 ```
-You can find the full RGB Driver source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Ice40/Rgb.hs). We should mention that Standard Semiconductor also maintains [ice40-prim](https://github.com/standardsemiconductor/ice40-prim), a library of iCE40 FPGA primitives [available on Hackage](https://hackage.haskell.org/package/ice40-prim). It contains the RGB driver along with other primitives for you to use in your own projects. However, this guide is meant to be self-contained so we will continue to use the driver developed in this section. We now move onto creating a blinker.
+You can find the full RGB Driver source code [here](veldt/Veldt/Ice40/Rgb.hs). We should mention that Standard Semiconductor also maintains [ice40-prim](https://github.com/standardsemiconductor/ice40-prim), a library of iCE40 FPGA primitives [available on Hackage](https://hackage.haskell.org/package/ice40-prim). It contains the RGB driver along with other primitives for you to use in your own projects. However, this guide is meant to be self-contained so we will continue to use the driver developed in this section. We now move onto creating a blinker.
 
-### [Fiat Lux: Blinker](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [Fiat Lux: Blinker](#table-of-contents)
 This is our first demo, we will use our PWM to blink an LED; it will light up red, green, blue, then cycle back to red. Let's begin by setting up a directory for our demos, then setup a blinker demo with cabal:
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir -p demo/blinker && cd demo/blinker
 ```
-Once again, we use the [clash-starters simple](https://github.com/clash-lang/clash-starters/tree/main/simple) project as our starting template. Copy the `/bin` directory, `cabal.project`, and `simple.cabal`. Be sure to update the project name and dependencies.
+Once again, we use the [clash-starters simple](https://github.com/clash-lang/clash-starters/simple) project as our starting template. Copy the `/bin` directory, `cabal.project`, and `simple.cabal`. Be sure to update the project name and dependencies.
 
 Your `cabal.project` file should look similar, note we also include the `veldt.cabal` file from our library; you may need to change the filepath to `veldt.cabal` depending on your file locations:
 ```
@@ -669,7 +669,7 @@ executable clashi
   build-depends: base, clash-ghc, blinker
 ```
 
-With that out of the way, let's create a [`Blinker.hs`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.hs) file and open the file with a text editor.
+With that out of the way, let's create a [`Blinker.hs`](demo/blinker/Blinker.hs) file and open the file with a text editor.
 ```console
 foo@bar:~/VELDT-getting-started/demo/blinker$ touch Blinker.hs
 ```
@@ -744,7 +744,7 @@ Next, we `increment` the timer while binding the **old** value to `t` using the 
 
 The clock has a frequency of 12Mhz and the timer increments every cycle therefore counting from 0 to 23,999,999 takes two seconds. When `t` is equal to `maxBound` (in this case 23,999,999), we `increment` the `color` and bind the **new** color to `c'` with [`<%=`](https://hackage.haskell.org/package/lens-5.0.1/docs/Control-Lens-Lens.html#v:-60--37--61-). Next we apply `toPWM` and bind the updated duty cycles. Then, we update each PWM duty cycle using `setDuty`. Finally, we `return` the PWM outputs `r`, `g`, and `b` which were bound at the start of `blinkerM`. 
 
-Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
+Now we need to run `blinkerM` as a mealy machine. This requires the use of [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Prelude.html#v:mealy) from the Clash Prelude. [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Prelude.html#v:mealy) takes a transfer function of type `s -> i -> (s, o)` and an initial state then produces a function of type `HiddenClockResetEnable dom => Signal dom i -> Signal dom o`.
 ```haskell
 blinker :: HiddenClockResetEnable dom => Signal dom R.Rgb
 blinker = R.rgb $ mealy blinkerMealy mkBlinker $ pure ()
@@ -765,11 +765,11 @@ topEntity clk = withClockResetEnable clk rst enableGen blinker
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Blinker"
 ```
-Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Signal.html#v:withClockResetEnable).
+Note, every top entity function has the `NOINLINE` annotation. Although this is a Lattice FPGA, it just so happens that the `XilinxSystem` domain also works. Domains describe things such as reset polarity and clock period and active edge. More information about domains is found in the `Clash.Signal` module. `XilinxSystem` specifies active-high resets, therefore we define a `rst` signal, which is always inactive, by inputting `False` to [`unsafeFromHighPolarity`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Signal.html#v:withClockResetEnable).
 
-`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
+`blinker` has a `HiddenClockResetEnable` constraint so we use [`withClockResetEnable`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Signal.html#v:withClockResetEnable) to expose the clock, reset, and enable signals.
 
-We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
+We use the template haskell function [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) which will generate synthesis boilerplate and name the top module and its ports in Verilog. The inputs and outputs of the `topEntity` function will be constrained by the `Blinker.pcf`, or pin constraint file.
 
 Here is the complete `Blinker.hs` source code:
 ```haskell
@@ -841,7 +841,7 @@ topEntity clk = withClockResetEnable clk rst enableGen blinker
 makeTopEntityWithName 'topEntity "Blinker"  
 ```
 
-We need a `.pcf` file to connect the FPGA ports to our design ports. Keep in mind that `Rgb` is annotated with `red`, `green`, and `blue`. Thus, our only input is `clk`, and our three outputs are `led_red`, `led_green`, `led_blue`. Here is the [Blinker.pcf](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.pcf).
+We need a `.pcf` file to connect the FPGA ports to our design ports. Keep in mind that `Rgb` is annotated with `red`, `green`, and `blue`. Thus, our only input is `clk`, and our three outputs are `led_red`, `led_green`, `led_blue`. Here is the [Blinker.pcf](demo/blinker/Blinker.pcf).
 ```
 set_io clk 35 # iot_46b_g0 12Mhz Xtal
 
@@ -849,9 +849,9 @@ set_io led_blue  41 # rgb2 blue
 set_io led_green 40 # rgb1 green
 set_io led_red   39 # rgb0 red
 ```
-The `#` indicates anything after it is a comment. We provide a [default pin constraint file](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/pcf_generic.pcf) with helpful comments in the [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directory; just remove the first `#` and change the pin name to suit your design.
+The `#` indicates anything after it is a comment. We provide a [default pin constraint file](demo/pcf_generic.pcf) with helpful comments in the [demo](demo/) directory; just remove the first `#` and change the pin name to suit your design.
 
-Finally, we provide a [Makefile](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Makefile) along with a [generic version](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/Makefile_generic) in the [demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo) directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans synthesis files while `make clean-all` will also clean the cabal build cache. Information about automatic variables such as `$<` and `$@` can be found [here](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html). Be sure `TOP` is assigned the same value as provided to `makeTopEntityWithName`.
+Finally, we provide a [Makefile](demo/blinker/Makefile) along with a [generic version](demo/Makefile_generic) in the [demo](demo/) directory. This automates building the Haskell code with cabal, compiling with Clash, synthesizing with Yosys, place-and-route with NextPNR, bitstream packing with icepack, and bitstream programming with iceprog. Specifically, `make build` just calls `cabal build`, `make` will build with cabal, synthesize, and place-and-route. `make prog` will program the bitstream to VELDT. `make clean` cleans synthesis files while `make clean-all` will also clean the cabal build cache. Information about automatic variables such as `$<` and `$@` can be found [here](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html). Be sure `TOP` is assigned the same value as provided to `makeTopEntityWithName`.
 ```make
 TOP := Blinker
 
@@ -915,17 +915,17 @@ Info: 	         SB_RGBA_DRV:     1/    1   100%
 Info: 	      ICESTORM_SPRAM:     0/    4     0%
 .....
 ```
-You can find the blinker demo [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker). Here is a demo video:
+You can find the blinker demo [here](demo/blinker). Here is a demo video:
 
 ![](demo/blinker/blinker.gif)
-## [Section 3: Roar](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+## [Section 3: Roar](#table-of-contents)
 
 > Remarkable how the nursery caught the telepathic emanations of the children’s minds and created life to fill their every desire. The children thought lions, and there were lions. The children thought zebras, and there were zebras. Sun—sun. Giraffes—giraffes. 
 
 > *The Veldt* by Ray Bradbury
 
 In this section we start by building a serializer and deserializer. Then, with a serializer and deserializer along with a counter we construct a UART (Universal Asynchronous Receiver Transmitter). Equipped with our UART, we create a demo which echoes its input.
-### [Serial for Breakfast](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [Serial for Breakfast](#table-of-contents)
 Let's begin by creating a file `Serial.hs` in the `Veldt` directory.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Serial.hs
@@ -939,7 +939,7 @@ exposed-modules: Veldt.Counter,
 		 Veldt.Ice40.Rgb
 .....
 ```
-Let's begin editing the `Serial.hs` file. Fundamentally, we represent serializers and deserializers with a counter and a `Vec` from [Clash.Sized.Vector](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Sized-Vector.html). This means we will be able to serialize or deserialize in two directions say left or right e.g. for a deserializer we could add elements at the beginning (left) or end (right) of the `Vec`. Additionally, we use a flag to indicate whether a deserializer is full or a serializer is empty.
+Let's begin editing the `Serial.hs` file. Fundamentally, we represent serializers and deserializers with a counter and a `Vec` from [Clash.Sized.Vector](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Sized-Vector.html). This means we will be able to serialize or deserialize in two directions say left or right e.g. for a deserializer we could add elements at the beginning (left) or end (right) of the `Vec`. Additionally, we use a flag to indicate whether a deserializer is full or a serializer is empty.
 ```haskell
 module Veldt.Serial
   ( Direction(..)
@@ -1071,7 +1071,7 @@ empty = use sEmpty
 ```
 `empty` is similar to `full`, in that we just return the flag. `give` first sets the buffer to the function input `v`, then sets the empty flag to false (meaning the serializer is full) and finally we reset the counter to 0. `peek` returns either the `head` or `last` element of the buffer, depending on the serializer direction. This is useful because sometimes we just want to know what value to serialize without actually changing the underlying buffer. If we do want to update the underlying buffer, use `serialize` which rotates the buffer depending on the direction, then updates the empty flag, and finally increments the counter. 
 
-Here is the complete [Serial.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Serial.hs) source code:
+Here is the complete [Serial.hs](veldt/Veldt/Serial.hs) source code:
 ```haskell
 module Veldt.Serial
   ( Direction(..)
@@ -1180,7 +1180,7 @@ Building library for veldt-0.1.0.0..
 ```
 In the next part we develop a UART.
 
-### [UART My Art](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [UART My Art](#table-of-contents)
 Before diving into this section, it may be helpful to familiarize yourself with UART by browsing the [Wikipedia page](https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter). Let's create a `Uart.hs` file.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ touch Veldt/Uart.hs
@@ -1404,7 +1404,7 @@ write = zoom transmitter . transmit
 ```
 The `Uart` state type consists of a receiver and a transmitter. We define a smart constructor `mkUart` which takes a baud rate and constructs both the receiver and transmitter with the same baud rate. Next we define a `read` function which just `zoom`s into the receiver. When the `read` function is busy it returns `Nothing`, when it has a byte it returns `Just` that byte. Finally, the `write` function `zoom`s into the transmitter. It returns `False` when busy sending and `True` when it is done.
 
-Here is the full [`Uart.hs`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/Uart.hs) source code:
+Here is the full [`Uart.hs`](veldt/Veldt/Uart.hs) source code:
 ```haskell
 module Veldt.Uart
   ( Rx(Rx)
@@ -1580,7 +1580,7 @@ Building library for veldt-0.1.0.0..
 ```
 In the next part we demo our UART!
 
-### [Roar: Echo](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [Roar: Echo](#table-of-contents)
 It's time to demonstrate usage of our UART! We will have it echo our input. First setup the `echo` project directory, we use `blinker` as our template. We need to copy `bin/`, `cabal.project`, and `blinker.cabal`, along with `Makefile_generic` and `pcf_generic` and rename the package to `echo`.
 ```console
 foo@bar:~/VELDT-getting-started/demo$ mkdir echo && cd echo
@@ -1810,7 +1810,7 @@ echo = echoMealy <^> mkEcho
     echoMealy s i = let ((), s', tx) = runRWS echoM (U.Rx i) s
                     in (s', U.unTx tx)
 ```
-[`<^>`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Prelude.html#v:-60--94--62-) is the infix version of `mealy`; it takes two arguments
+[`<^>`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Prelude.html#v:-60--94--62-) is the infix version of `mealy`; it takes two arguments
   1. the transfer function `s -> i -> (s, o)`
   2. the initial state
 
@@ -1828,7 +1828,7 @@ topEntity clk = withClockResetEnable clk rst enableGen echo
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "Echo"
 ```
-We annotate the inputs and outputs for easy usage with our pin constraint file. Additionally, [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) from [`Clash.Annotations.TH`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Annotations-TH.html) automatically annotates our function with specified input, output, and module names.
+We annotate the inputs and outputs for easy usage with our pin constraint file. Additionally, [`makeTopEntityWithName`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Annotations-TH.html#v:makeTopEntityWithName) from [`Clash.Annotations.TH`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Annotations-TH.html) automatically annotates our function with specified input, output, and module names.
 
 Next, edit the `Echo.pcf` file to match our `topEntity` declaration. We only need three pins so we remove the ones we don't need. The `generic_pcf.pcf` which we copied from has all the pins and helpful comments to discern their function. We need pin 35 `12Mhz Xtal` (12Mhz crystal oscillator) for `clk`. We need pin 17 for `tx` and pin 15 for `rx`. Note `#` starts a comment.
 Your `Echo.pcf` file should look similar:
@@ -1838,7 +1838,7 @@ set_io rx 15 # iob_34a_spi_wck ice_wck  uart_rx
 
 set_io clk 35 # iot_46b_g0 12Mhz Xtal
 ```
-You can view the [Functional Diagram](https://github.com/standardsemiconductor/VELDT-info/blob/master/functional-diagram.pdf) of the VELDT board to understand how these pins connect to the rest of the board.
+You can view the [Functional Diagram](functional-diagram.pdf) of the VELDT board to understand how these pins connect to the rest of the board.
 
 Before we test out our demo, we need a way to communicate with the VELDT from our computer via UART. For this demo we use [Minicom](https://help.ubuntu.com/community/Minicom), a text-based serial port communications program though any serial communcations program should work; just make sure it is configured with the correct port, protocol and baud rate!
 
@@ -1890,7 +1890,7 @@ Here is a demo video using minicom:
 
 An alternative to minicom is using [serialport](https://github.com/standardsemiconductor/serialport), a Haskell library for serial port communication which is maintained by Standard Semiconductor and [available on Hackage](https://hackage.haskell.org/package/serialport).
 
-We create a client program [Main.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/echo/Main.hs) which echoes bytes through the serial port:
+We create a client program [Main.hs](demo/echo/Main.hs) which echoes bytes through the serial port:
 ```haskell
 import System.Hardware.Serialport
 import System.IO
@@ -1909,7 +1909,7 @@ main = withSerial "/dev/ttyUSB0" settings $ \port -> do
     settings = defaultSerialSettings { commSpeed = CS19200 }
 ```
 
-Now we add an executable to our [echo.cabal](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/echo/echo.cabal) file.
+Now we add an executable to our [echo.cabal](demo/echo/echo.cabal) file.
 ```
 executable echo
   main-is: Main.hs
@@ -1925,9 +1925,9 @@ foo@bar:~/VELDT-getting-started/demo/echo$ cabal run echo
 ```
 When you are finished, press <kbd>Ctrl-c</kbd> to stop the program.
 
-This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/echo). 
+This concludes the demo. You can find the project directory [here](demo/echo/). 
 
-## [Section 4: Happylife](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+## [Section 4: Happylife](#table-of-contents)
 > They walked down the hall of their soundproofed Happylife Home... this house which clothed and fed and rocked them to sleep and played and sang and was good to them. Their approach sensitized a switch somewhere and the nursery light flicked on when they came within ten feet of it. Similarly, behind them, in the halls, lights went on and off as they left them behind, with a soft automaticity.
 
 > *The Veldt* by Ray Bradbury
@@ -1936,7 +1936,7 @@ In this section we [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) 
 
 ### [DRY PWM](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
 
-In the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/blinker/Blinker.hs) we used three PWMs to drive the RGB LED. This is a common pattern, and one we will use in the upcoming UART LED demo. To avoid repeating code, we factor this pattern into a separate module `Veldt.PWM.Rgb`. Let's create the directory `PWM` with the file `Rgb.hs` then open it with a text editor.
+In the [blinker demo](demo/blinker/Blinker.hs) we used three PWMs to drive the RGB LED. This is a common pattern, and one we will use in the upcoming UART LED demo. To avoid repeating code, we factor this pattern into a separate module `Veldt.PWM.Rgb`. Let's create the directory `PWM` with the file `Rgb.hs` then open it with a text editor.
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir veldt/Veldt/PWM && touch veldt/Veldt/PWM/Rgb.hs
 ```
@@ -1977,7 +1977,7 @@ mkPWMRgb (r, g, b) = PWMRgb
   , _bluePWM  = mkPWM b
   }
 ```
-`PWMRgb` is just three PWMs each corresponding to a color: red, green, and blue. To construct `PWMRgb` with `mkPWMRgb` we first need an initial duty cycle for each color (represented as a triple). Then, we construct each individual color PWM with the `mkPWM` smart constructor from the [`Veldt.PWM`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/Veldt/PWM.hs) module. Our `mkPWMRgb` function has a `Bounded` constraint because `mkPWM` requires it (remember `mkPWM` sets `ctr` to `minBound`).
+`PWMRgb` is just three PWMs each corresponding to a color: red, green, and blue. To construct `PWMRgb` with `mkPWMRgb` we first need an initial duty cycle for each color (represented as a triple). Then, we construct each individual color PWM with the `mkPWM` smart constructor from the [`Veldt.PWM`](veldt/Veldt/PWM.hs) module. Our `mkPWMRgb` function has a `Bounded` constraint because `mkPWM` requires it (remember `mkPWM` sets `ctr` to `minBound`).
 
 Now we implement the API:
 ```haskell
@@ -1999,7 +1999,7 @@ The first function `pwmRgb` uses [`zoom`](https://hackage.haskell.org/package/le
 
 The second function `setRgb` takes a triple of duty cycles (parameterized by `a`) and updates each individual PWM's duty cycle. We use `zoom` to get at each PWM sub-state, then use `setDuty` for each color's PWM.
 
-Make sure to add this module (`Veldt.PWM.Rgb`) to the `exposed-modules` list in the [`veldt.cabal`](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/veldt/veldt.cabal) file.
+Make sure to add this module (`Veldt.PWM.Rgb`) to the `exposed-modules` list in the [`veldt.cabal`](veldt/veldt.cabal) file.
 ```
 ...
 exposed-modules: Veldt.Counter,
@@ -2013,16 +2013,16 @@ Rebuild the library; there should be no errors.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ```
-In the next part we will use `PWMRgb` and build a system which controls the LED via UART. We leave it as an exercise to the reader to use `PWMRgb` to DRY up the [blinker demo](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/blinker).
+In the next part we will use `PWMRgb` and build a system which controls the LED via UART. We leave it as an exercise to the reader to use `PWMRgb` to DRY up the [blinker demo](demo/blinker).
 
-### [Happylife: UART LED](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+### [Happylife: UART LED](#table-of-contents)
 In this section we build a system which allows the user to control an LED via UART. Specifically, the user can change the LED color and the speed at which the LED blinks. The user sends ascii characters via UART to the system:
   * <kbd>s</kbd> adjusts the blinking speed, there are three speeds: low, medium, and high
   * <kbd>r</kbd> sets the LED color to red
   * <kbd>g</kbd> sets the LED color to green
   * <kbd>b</kbd> sets the LED color to blue
 
-You can find all the demo files (cabal, pin-constraint, Makefile etc.) in the [uart-led](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led) directory. We will dive directly into the demo source code [UartLed.hs](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/uart-led/UartLed.hs) so as not to get bogged down by setup (it's very similar to the first two demos).
+You can find all the demo files (cabal, pin-constraint, Makefile etc.) in the [uart-led](demo/uart-led) directory. We will dive directly into the demo source code [UartLed.hs](demo/uart-led/UartLed.hs) so as not to get bogged down by setup (it's very similar to the first two demos).
 
 Let's declare our module, langauge extensions, and imports:
 ```haskell
@@ -2169,7 +2169,7 @@ uartLedS = R.rgb . fmap (fromMaybe (0, 0, 0) . getFirst) . mealy uartLedMealy mk
                        in (s', o)
 ```
 
-We "run" the `uartLed` transfer function using [`runRWS`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) and rearrange our types for [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.6.1/docs/Clash-Prelude.html#v:mealy). We also unwrap the output signal, a RGB-tuple of PWM outputs, with [`getFirst`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Monoid.html#v:getFirst) then `fromMaybe (0, 0, 0)`. If the LED is off then the output signal is `mempty` or `First Nothing`. After unwrapping, we end up feeding `(0, 0, 0)` into `R.rgb` which turns the LED off. If the LED is on then the output signal is `First (Just (pwmR, pwmG, pwmB))`. After unwrapping, we end up feeding `(pwmR, pwmG, pwmB)` into `R.rgb`, driving the LED!
+We "run" the `uartLed` transfer function using [`runRWS`](https://hackage.haskell.org/package/mtl-2.2.2/docs/Control-Monad-RWS-Lazy.html#v:runRWS) and rearrange our types for [`mealy`](http://hackage.haskell.org/package/clash-prelude-1.8.1/docs/Clash-Prelude.html#v:mealy). We also unwrap the output signal, a RGB-tuple of PWM outputs, with [`getFirst`](https://hackage.haskell.org/package/base-4.16.0.0/docs/Data-Monoid.html#v:getFirst) then `fromMaybe (0, 0, 0)`. If the LED is off then the output signal is `mempty` or `First Nothing`. After unwrapping, we end up feeding `(0, 0, 0)` into `R.rgb` which turns the LED off. If the LED is on then the output signal is `First (Just (pwmR, pwmG, pwmB))`. After unwrapping, we end up feeding `(pwmR, pwmG, pwmB)` into `R.rgb`, driving the LED!
 
 Last, we define the top entity:
 ```haskell
@@ -2183,7 +2183,7 @@ topEntity clk = withClockResetEnable clk rst enableGen uartLedS
     rst = unsafeFromHighPolarity $ pure False
 makeTopEntityWithName 'topEntity "UartLed"
 ```
-We label the inputs "clk" and "rx" along with the output "led". We also make sure `makeTopEntityWithName` uses "UartLed" which matches `TOP` in our [Makefile](https://github.com/standardsemiconductor/VELDT-getting-started/blob/master/demo/uart-led/Makefile).
+We label the inputs "clk" and "rx" along with the output "led". We also make sure `makeTopEntityWithName` uses "UartLed" which matches `TOP` in our [Makefile](demo/uart-led/Makefile).
 
 Be sure the cabal files, bin directory, pcf file, and Makefile are setup correctly. Plug the VELDT FPGA board into your computer. Set the power switch (white) to ON and the configuration switch (black) to FLASH. Ensure the PWR LED is illuminated RED. Then execute `make prog` from the command line. The demo should build, synthesize, and program with no errors. You should see a similar device utilisation:
 ```
@@ -2198,6 +2198,6 @@ Info: 	         SB_RGBA_DRV:     1/    1   100%
 ```
 When the programming is finished (indicated by CDONE LED illuminated blue), cycle the power switch (white) and flip the configuration switch (black) to FPGA. The RGB LED should be RED and blinking with three second period. This is our initial state! Start minicom using the same setup as used in the echo demo. Within minicom we control the LED color and blink speed with the <kbd>s</kbd>, <kbd>r</kbd>, <kbd>g</kbd>, and <kbd>b</kbd> keyboard characters.
 
-This concludes the demo. You can find the project directory [here](https://github.com/standardsemiconductor/VELDT-getting-started/tree/master/demo/uart-led). Special thanks to @kejace for suggesting this demo.
+This concludes the demo. You can find the project directory [here](demo/uart-led). Special thanks to @kejace for suggesting this demo.
 
-[Jump to Table of Contents](https://github.com/standardsemiconductor/VELDT-getting-started#table-of-contents)
+[Jump to Table of Contents](#table-of-contents)
