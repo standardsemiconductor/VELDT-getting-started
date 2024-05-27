@@ -30,7 +30,7 @@ We use the Project IceStorm flow for synthesis, routing, and programming. These 
 
 This guide is split into several sections. Each section begins with construction of sub-components then culminates with an application which utilizes the sub-components. [Section 2](#section-2-fiat-lux) constructs a simple blinker, the "hello-world" of FPGAs. [Section 3](#section-3-roar) covers serializers and deserializers which are used to construct a UART. [Section 4](#section-4-happylife) ties together concepts from the previous sections with a demo of controlling the LED via UART. In the future we hope to add sections which demonstrate how to interact with the memory provided by VELDT, design a simple CPU with a custom ISA, and construct a System-On-Chip (SoC).
 
-By the end of the guide, you will have a library of commonly used hardware components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](veldt/) and [demo](demo/) directories.
+By the end of the guide, you will have a library of commonly used hardware components along with a directory of applications demonstrating their usage. The library and demos explained in this guide are available in this repo, see the [veldt](veldt) and [demo](demo) directories.
 
 Finally, if you have any suggestions, comments, discussions, edits, additions etc. please open an issue in this repo. We value any and all contributions. Let's get started!
 
@@ -46,7 +46,7 @@ We begin by creating a directory called "veldt" to contain our haskell library:
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir veldt && cd veldt
 ```
-We use the [clash-example-project](https://github.com/clash-lang/clash-starters/simple) as a template. Specifically, we copy the `bin/`, `cabal.project`, and `simple.cabal` into our `veldt` directory. We need to change the project name in the `cabal.project` and `veldt.cabal` files from `simple` to `veldt`. Additionally, in the `veldt.cabal` file we add `mtl`, `lens`, and `interpolate` to the build-depends section. 
+We use the [clash-example-project](https://github.com/clash-lang/clash-starters/tree/main/simple) as a template. Specifically, we copy the `bin/`, `cabal.project`, and `simple.cabal` into our `veldt` directory. We need to change the project name in the `cabal.project` and `veldt.cabal` files from `simple` to `veldt`. Additionally, in the `veldt.cabal` file we add `mtl`, `lens`, and `interpolate` to the build-depends section. 
 
 Your `cabal.project` file should look similar:
 ```
@@ -167,7 +167,7 @@ The common-section has three major parts:
 
 In the library section we import the `common-options` and list `exposed-modules` which are the modules we export from the library to be used in our demos. So far we see `Veldt.Counter`, we will create a directory `Veldt` with a file `Counter.hs`. This will have our counter source code.
 
-The last two parts define executables `clash` and `clashi` which we use to invoke the Clash compiler. More information about setting up a Clash project can be found in the [clash-starters repository](https://github.com/clash-lang/clash-starters/simple#simple-starter-project).
+The last two parts define executables `clash` and `clashi` which we use to invoke the Clash compiler. More information about setting up a Clash project can be found in the [clash-starters repository](https://github.com/clash-lang/clash-starters/tree/main/simple#simple-starter-project).
 
 Create a directory `Veldt` with a file `Counter.hs`.
 ```console
@@ -255,7 +255,7 @@ foo@bar:~/VELDT-getting-started/veldt$ cabal build
 ...
 [1 of 1] Compiling Veldt.Counter    ...
 ```
-You can find the full counter source code [here](https://github.com/standardsemiconductor/VELDT-getting-started/veldt/Veldt/Counter.hs). We can now use our counter API to create a PWM.
+You can find the full counter source code [here](veldt/Veldt/Counter.hs). We can now use our counter API to create a PWM.
 
 ### [Its a Vibe: PWM](#table-of-contents)
 Pulse Width Modulation or PWM is used to drive our LED. We use a technique called [time proportioning](https://en.wikipedia.org/wiki/Pulse-width_modulation#Time_proportioning) to generate the PWM signal with our counter. To begin let's create a `PWM.hs` file in the `Veldt` directory.
@@ -367,7 +367,7 @@ foo@bar:~/VELDT-getting-started/veldt$ cabal build
 You can find the full PWM source code [here](veldt/Veldt/PWM.hs). In the next part, we use a Clash primitive to infer Lattice RGB Driver IP.
 
 ### [Drive: RGB Primitive](#table-of-contents)
-We need one more component before starting our demo, a RGB (Red, Green, Blue) LED Driver. It takes 3 PWM signals (R, G, B) to drive the LED. We use the Verilog template from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info/ICE40LEDDriverUsageGuide.pdf). Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP (SB_RGBA_DRV) from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `Rgb.hs` file which will be our RGB Driver primitive.
+We need one more component before starting our demo, a RGB (Red, Green, Blue) LED Driver. It takes 3 PWM signals (R, G, B) to drive the LED. We use the Verilog template from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info/blob/main/ICE40LEDDriverUsageGuide.pdf). Because the RGB Driver is a Lattice IP block, we need our compiled Haskell code to take a certain form in Verilog. When we synthesize the demo, Yosys will infer the Lattice Ice40 RGB Driver IP (SB_RGBA_DRV) from the Verilog code. In order to have Clash use a certain Verilog (or VHDL) code, we write a primitive. This primitive tells the Clash compiler to insert Verilog (or VHDL) instead of compiling our function. Let's begin by creating a directory `Ice40` for our Lattice primitives. This will be within the `Veldt` directory. Then we create a `Rgb.hs` file which will be our RGB Driver primitive.
 ```console
 foo@bar:~/VELDT-getting-started/veldt$ mkdir Veldt/Ice40 && touch Veldt/Ice40/Rgb.hs
 ```
@@ -438,7 +438,7 @@ Now we create the primitive.
   ]
   |]) #-}
 ```
-When writing primitives be sure the function name, module name, and black box name all match. The template is Verilog from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info//ICE40LEDDriverUsageGuide.pdf). The documentation for writing primitives is on the [clash-prelude](https://hackage.haskell.org/package/clash-prelude) hackage page in the `Clash.Annotations.Primitive` module. Basically, the `SB_RGBA_DRV` module takes 3 PWM input signals and outputs 3 LED driver signals. We adopt the style to prefix any primitive functions with `Prim`. Let's give a Haskell function stub for the primitive.
+When writing primitives be sure the function name, module name, and black box name all match. The template is Verilog from the Lattice documentation [iCE40 LED Driver Usage Guide](https://github.com/standardsemiconductor/VELDT-info/blob/main/ICE40LEDDriverUsageGuide.pdf). The documentation for writing primitives is on the [clash-prelude](https://hackage.haskell.org/package/clash-prelude) hackage page in the `Clash.Annotations.Primitive` module. Basically, the `SB_RGBA_DRV` module takes 3 PWM input signals and outputs 3 LED driver signals. We adopt the style to prefix any primitive functions with `Prim`. Let's give a Haskell function stub for the primitive.
 ```haskell
 {-# NOINLINE rgbDriverPrim #-}
 rgbPrim
@@ -555,7 +555,7 @@ This is our first demo, we will use our PWM to blink an LED; it will light up re
 ```console
 foo@bar:~/VELDT-getting-started$ mkdir -p demo/blinker && cd demo/blinker
 ```
-Once again, we use the [clash-starters simple](https://github.com/clash-lang/clash-starters/simple) project as our starting template. Copy the `/bin` directory, `cabal.project`, and `simple.cabal`. Be sure to update the project name and dependencies.
+Once again, we use the [clash-starters simple](https://github.com/clash-lang/clash-starters/blob/main/simple) project as our starting template. Copy the `/bin` directory, `cabal.project`, and `simple.cabal`. Be sure to update the project name and dependencies.
 
 Your `cabal.project` file should look similar, note we also include the `veldt.cabal` file from our library; you may need to change the filepath to `veldt.cabal` depending on your file locations:
 ```
@@ -1925,7 +1925,7 @@ foo@bar:~/VELDT-getting-started/demo/echo$ cabal run echo
 ```
 When you are finished, press <kbd>Ctrl-c</kbd> to stop the program.
 
-This concludes the demo. You can find the project directory [here](demo/echo/). 
+This concludes the demo. You can find the project directory [here](demo/echo). 
 
 ## [Section 4: Happylife](#table-of-contents)
 > They walked down the hall of their soundproofed Happylife Home... this house which clothed and fed and rocked them to sleep and played and sang and was good to them. Their approach sensitized a switch somewhere and the nursery light flicked on when they came within ten feet of it. Similarly, behind them, in the halls, lights went on and off as they left them behind, with a soft automaticity.
